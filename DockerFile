@@ -1,0 +1,11 @@
+FROM golang:1.14
+ 
+RUN mkdir -p /app/cmd/hookbuffer
+ 
+WORKDIR /app
+ 
+ADD ./cmd/hookbuffer ./cmd/hookbuffer
+ 
+RUN go build ./cmd/hookbuffer/
+ 
+CMD ["./hookbuffer"]
