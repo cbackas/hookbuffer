@@ -21,7 +21,7 @@ var timeRemaining int = timerDefault // timer that counts down
 // Body structure of a Discord webhook
 type Body struct {
 	Content string  `json:"content"`
-	Embeds  []Embed `json:"embeds"`
+	Embeds  []Embed `json:"embeds,omitempty"`
 }
 
 // Embed structure for use inside Body
@@ -57,12 +57,33 @@ func HandleSonarr(h *Hook) {
 	h.BodyByte = nil
 	h.Body = b
 
+	matched, _ := regexp.MatchString(`^Test message from Sonarr.+`, b.Content)
+	if matched {
+		fmt.Println("[Recieved & Forwarded] " + b.Content)
+		forwardTestHook(h)
+		return
+	}
+
 	// add the hook to the queue
 	inQueue = append(inQueue, h)
 
 	// trigger the timer
-	fmt.Println("[Recieved] " + h.Body.Content)
+	fmt.Println("[Recieved] " + b.Content)
 	startTimer()
+}
+
+func forwardTestHook(h *Hook) {
+	w := webhook{
+		url: "https://canary.discordapp.com" + h.URL,
+		body: Body{
+			Content: h.Body.Content,
+		},
+	}
+
+	err := sendWebhook(&w)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func startTimer() {
@@ -108,13 +129,8 @@ func processQueue(q []*Hook) {
 }
 
 func prepareWebhook(g group) webhook {
-	// parse URL path out of original request
-	re := regexp.MustCompile(`^/api/webhooks/(.+)/(.+)`)
-	segs := re.FindAllStringSubmatch(g.hook.URL, -1)
-	seg1, seg2 := segs[0][1], segs[0][2]
-
 	// build discord webhook with path
-	webhookURL := "https://canary.discordapp.com/api/webhooks/" + seg1 + "/" + seg2
+	webhookURL := "https://canary.discordapp.com" + g.hook.URL
 
 	webhook := webhook{url: webhookURL}
 	if len(g.episodes) == 1 {
