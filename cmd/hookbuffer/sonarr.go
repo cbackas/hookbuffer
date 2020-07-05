@@ -15,8 +15,27 @@ var inQueue []*Hook  // hooks we recieve
 var outQueue []*Hook // hooks we're sending
 
 var timerActive bool = false         // is a hook timer currenty running
-var timerDefault int = 5             // timer default
+var timerDefault int = 10            // timer default
 var timeRemaining int = timerDefault // timer that counts down
+
+// Body structure of a Discord webhook
+type Body struct {
+	Content string  `json:"content"`
+	Embeds  []Embed `json:"embeds"`
+}
+
+// Embed structure for use inside Body
+type Embed struct {
+	Description string `json:"description"`
+	Title       string `json:"title"`
+	Text        string `json:"text"`
+	Color       int    `json:"color"`
+}
+
+type webhook struct {
+	url  string
+	body Body
+}
 
 type group struct {
 	action   string
@@ -24,11 +43,6 @@ type group struct {
 	season   string
 	episodes []string
 	hook     Hook // one of the original hooks (to get URL)
-}
-
-type webhook struct {
-	url  string
-	body Body
 }
 
 // HandleSonarr recieves the hook from webhookhandler, processes content, and manages its own timer/queue
