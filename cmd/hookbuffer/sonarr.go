@@ -57,9 +57,10 @@ func HandleSonarr(h *Hook) {
 	h.BodyByte = nil
 	h.Body = b
 
+	fmt.Println("[Recieved] " + b.Content)
+
 	matched, _ := regexp.MatchString(`^Test message from Sonarr.+`, b.Content)
 	if matched {
-		fmt.Println("[Recieved & Forwarded] " + b.Content)
 		forwardTestHook(h)
 		return
 	}
@@ -68,7 +69,6 @@ func HandleSonarr(h *Hook) {
 	inQueue = append(inQueue, h)
 
 	// trigger the timer
-	fmt.Println("[Recieved] " + b.Content)
 	startTimer()
 }
 
@@ -223,7 +223,7 @@ func mergeQueue(q []*Hook) map[string]group {
 
 	groups := make(map[string]group)
 
-	re := regexp.MustCompile(`^(Grabbed|Imported): (.+) - ([0-9]+)x([0-9]+) - (.+) (\[.+\])`)
+	re := regexp.MustCompile(`^(Grabbed|Imported): (.+) - ([0-9]+)(x[0-9]+)+ - (.+) (\[.+\])`)
 	for _, h := range q {
 		content := (*h).Body.Content
 		text := (*h).Body.Embeds[0].Text
