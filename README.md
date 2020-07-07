@@ -19,6 +19,8 @@ Instead of 9 separate Discord messages (one per episode), Hookbuffer groups them
 
 It's on Dockerhub: https://hub.docker.com/r/cbackas/hookbuffer
 
+```docker run --name hookbuffer -p 5369:5369 cback/hookbuffer:latest```
+
 Or you can build it and run it using commands
 
 ```go build cmd/hookbuffer```
