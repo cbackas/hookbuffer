@@ -20,16 +20,30 @@ var timeRemaining int = timerDefault // timer that counts down
 
 // Body structure of a Discord webhook
 type Body struct {
-	Content string  `json:"content"`
+	Content string  `json:"content,omitempty"`
 	Embeds  []Embed `json:"embeds,omitempty"`
 }
 
 // Embed structure for use inside Body
 type Embed struct {
-	Description string `json:"description"`
-	Title       string `json:"title"`
-	Text        string `json:"text"`
-	Color       int    `json:"color"`
+	Description string        `json:"description"`
+	Title       string        `json:"title"`
+	Color       int           `json:"color"`
+	URL         string        `json:"url"`
+	Author      author        `json:"author"`
+	Timestamp   string        `json:"timestamp"`
+	Fields      []embedfields `json:"fields,omitempty"`
+}
+
+type author struct {
+	Name    string `json:"name"`
+	IconURL string `json:"icon_url"`
+}
+
+type embedfields struct {
+	Name   string `json:"name"`
+	Value  string `json:"value"`
+	Inline bool   `json:"inline"`
 }
 
 type webhook struct {
@@ -50,6 +64,7 @@ func HandleSonarr(h *Hook) {
 	var b Body
 	err := json.Unmarshal(h.BodyByte, &b)
 	if err != nil {
+		println(err)
 		return
 	}
 
@@ -57,13 +72,13 @@ func HandleSonarr(h *Hook) {
 	h.BodyByte = nil
 	h.Body = b
 
-	fmt.Println("[Recieved] " + b.Content)
-
 	matched, _ := regexp.MatchString(`^Test message from Sonarr.+`, b.Content)
 	if matched {
 		forwardTestHook(h)
 		return
 	}
+
+	fmt.Println("[Recieved] " + b.Embeds[0].Title)
 
 	// add the hook to the queue
 	inQueue = append(inQueue, h)
@@ -79,6 +94,8 @@ func forwardTestHook(h *Hook) {
 			Content: h.Body.Content,
 		},
 	}
+
+	println("Forwarded test hook.")
 
 	err := sendWebhook(&w)
 	if err != nil {
@@ -163,7 +180,6 @@ func prepareGroupHook(g *group) webhook {
 			{
 				Description: d,
 				Title:       originalEmbed.Title,
-				Text:        d,
 				Color:       originalEmbed.Color,
 			},
 		},
@@ -177,16 +193,19 @@ func prepareGroupHook(g *group) webhook {
 func prepareSingleHook(g *group) webhook {
 	originalEmbed := g.hook.Body.Embeds[0]
 
-	c := g.action + ": " + originalEmbed.Text
+	c := g.action + ": " + originalEmbed.Title
+
+	replace := g.title + " - "
+	shortTitle := g.episodes[0]
+	shortTitle = strings.Replace(shortTitle, replace, "", 1)
 
 	// build body
 	body := Body{
 		Content: c,
 		Embeds: []Embed{
 			{
-				Description: originalEmbed.Description,
-				Title:       originalEmbed.Title,
-				Text:        originalEmbed.Text,
+				Description: shortTitle,
+				Title:       g.title,
 				Color:       originalEmbed.Color,
 			},
 		},
@@ -223,27 +242,46 @@ func mergeQueue(q []*Hook) map[string]group {
 
 	groups := make(map[string]group)
 
-	re := regexp.MustCompile(`^(Grabbed|Imported): (.+) - ([0-9]+)(x[0-9]+)+ - (.+) (\[.+\])`)
+	re := regexp.MustCompile(`^(.+) - ([0-9]+)(x[0-9]+)+ - (.+)`)
 	for _, h := range q {
-		content := (*h).Body.Content
-		text := (*h).Body.Embeds[0].Text
-		segs := re.FindAllStringSubmatch(content, -1)
-		action, show, season := segs[0][1], segs[0][2], segs[0][3]
-
-		groupName := action + "-" + show + "-" + season
-		if groups[groupName].title == "" { // action-show NOT present in groups
-			groups[groupName] = group{
-				action:   action,
-				title:    show,
-				season:   season,
-				episodes: []string{text},
-				hook:     *h,
+		for _, e := range (*h).Body.Embeds {
+			text := e.Title
+			for _, f := range e.Fields {
+				if f.Name == "Quality" {
+					text += " [" + f.Value + "]"
+					break
+				}
 			}
-		} else { // action-show already present in groups
-			g := groups[groupName]
-			g.episodes = append(g.episodes, text)
 
-			groups[groupName] = g
+			action := "Action"
+			if strings.Contains(e.Description, "Grabbed") {
+				action = "Grabbed"
+			} else if strings.Contains(e.Description, "Imported") {
+				action = "Imported"
+			}
+
+			segs := re.FindAllStringSubmatch(e.Title, -1)
+			if segs == nil {
+				println("[ERROR] TV Show/Season regex match failed.")
+				continue
+			}
+			show, season := segs[0][1], segs[0][2]
+
+			groupName := action + "-" + show + "-" + season
+			if groups[groupName].title == "" { // action-show NOT present in groups
+				groups[groupName] = group{
+					action:   action,
+					title:    show,
+					season:   season,
+					episodes: []string{text},
+					hook:     *h,
+				}
+			} else { // action-show already present in groups
+				g := groups[groupName]
+				g.episodes = append(g.episodes, text)
+
+				groups[groupName] = g
+			}
 		}
 	}
 	return groups
