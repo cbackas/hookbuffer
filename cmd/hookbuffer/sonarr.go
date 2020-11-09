@@ -253,11 +253,13 @@ func mergeQueue(q []*Hook) map[string]group {
 				}
 			}
 
-			action := "Action"
+			action := "Unsupported Action"
 			if strings.Contains(e.Description, "Grabbed") {
 				action = "Grabbed"
 			} else if strings.Contains(e.Description, "Imported") {
 				action = "Imported"
+			} else if strings.Contains(e.Description, "Upgraded") {
+				action = "Upgraded"
 			}
 
 			segs := re.FindAllStringSubmatch(e.Title, -1)
