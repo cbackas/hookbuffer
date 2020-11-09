@@ -179,7 +179,7 @@ func prepareGroupHook(g *group) webhook {
 		Embeds: []Embed{
 			{
 				Description: d,
-				Title:       originalEmbed.Title,
+				Title:       g.title,
 				Color:       originalEmbed.Color,
 			},
 		},
