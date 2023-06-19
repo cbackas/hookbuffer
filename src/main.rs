@@ -10,26 +10,20 @@ mod handlers;
 
 #[tokio::main]
 async fn main() {
-    let route = request_handler();
-    println!("Server started at localhost:8000");
-    warp::serve(route).run(([0, 0, 0, 0], 8000)).await;
-}
-
-// Either<futures::future::Map<impl futures::Future<Output = impl Reply>, impl Fn(impl Reply) -> Result<impl Reply, Result<warp::reply::Json, Rejection>>
-fn request_handler() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    // Create a SonarrHandler instance.
+    // SonarrHandler struct manages the state for the sonarr requests
     let sonarr_handler = Arc::new(SonarrHandler::new());
 
-    // Set up the route.
     let route = warp::post()
         .and(warp::header::headers_cloned())
         .and(warp::body::json::<Value>())
         .and(warp::path::full())
         .map({
             let sonarr_handler = Arc::clone(&sonarr_handler);
+
             move |headers: HeaderMap, body: Value, path: FullPath| {
                 let sonarr_handler = Arc::clone(&sonarr_handler);
                 let path = path.as_str().to_string();
+
                 if let Some(user_agent) = headers.get("User-Agent") {
                     match user_agent.to_str() {
                         Ok(agent) if agent.to_lowercase().starts_with("sonarr") => {
@@ -45,6 +39,7 @@ fn request_handler() -> impl Filter<Extract = impl warp::Reply, Error = warp::Re
                                 warp::http::StatusCode::OK,
                             )
                         }
+
                         Ok(agent) if agent.to_lowercase().starts_with("unraid") => {
                             println!("Processing Unraid data");
                             warp::reply::with_status(
@@ -52,6 +47,7 @@ fn request_handler() -> impl Filter<Extract = impl warp::Reply, Error = warp::Re
                                 warp::http::StatusCode::OK,
                             )
                         }
+
                         _ => {
                             // Unsupported content type
                             println!("Received unsupported User-Agent");
@@ -71,5 +67,6 @@ fn request_handler() -> impl Filter<Extract = impl warp::Reply, Error = warp::Re
             }
         });
 
-    route
+    println!("Server started at localhost:8000");
+    warp::serve(route).run(([0, 0, 0, 0], 8000)).await;
 }
