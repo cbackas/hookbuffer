@@ -4,7 +4,6 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{Duration, Instant};
 use warp::http::HeaderMap;
-// use warp::reply::Reply;
 
 pub struct SonarrHandler {
     // This will hold the state for each ongoing timer and queue of requests.
@@ -36,10 +35,10 @@ impl SonarrHandler {
 
     pub async fn handle(&self, url: String, headers: HeaderMap, body: Value) -> impl warp::Reply {
         let new_state: Option<TimerState>;
-    
+
         {
             let mut timers = self.timers.lock().await;
-    
+
             // Check if there is already a TimerState for this URL.
             if let Some(timer_state) = timers.get_mut(&url) {
                 // If there is a TimerState, add this request to the queue and update the timer_end Instant.
@@ -61,15 +60,14 @@ impl SonarrHandler {
             let mut timers = self.timers.lock().await;
             timers.insert(url.clone(), timer_state);
         }
-    
+
         // Now that the request has been added to the queue and the timer_end Instant has been updated,
         // we need to start the timer if it's not already running.
         self.start_timer(url).await;
-    
+
         // For now, just return a simple response. We'll modify this later to return a more useful response.
         warp::reply::json(&"Received Sonarr request")
     }
-    
 
     async fn start_timer(&self, url: String) {
         let mut timers = self.timers.lock().await;
