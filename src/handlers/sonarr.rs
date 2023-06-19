@@ -33,14 +33,14 @@ impl SonarrHandler {
         }
     }
 
-    pub async fn handle(&self, url: String, headers: HeaderMap, body: Value) -> impl warp::Reply {
+    pub async fn handle(&self, request_path: String, headers: HeaderMap, body: Value) -> impl warp::Reply {
         let new_state: Option<TimerState>;
 
         {
             let mut timers = self.timers.lock().await;
 
             // Check if there is already a TimerState for this URL.
-            if let Some(timer_state) = timers.get_mut(&url) {
+            if let Some(timer_state) = timers.get_mut(&request_path) {
                 // If there is a TimerState, add this request to the queue and update the timer_end Instant.
                 timer_state.queue.push(RequestData { headers, body });
                 timer_state.timer_end = Instant::now() + Duration::from_secs(15);
@@ -58,21 +58,21 @@ impl SonarrHandler {
 
         if let Some(timer_state) = new_state {
             let mut timers = self.timers.lock().await;
-            timers.insert(url.clone(), timer_state);
+            timers.insert(request_path.clone(), timer_state);
         }
 
         // Now that the request has been added to the queue and the timer_end Instant has been updated,
         // we need to start the timer if it's not already running.
-        self.start_timer(url).await;
+        self.start_timer(request_path).await;
 
         // For now, just return a simple response. We'll modify this later to return a more useful response.
         warp::reply::json(&"Received Sonarr request")
     }
 
-    async fn start_timer(&self, url: String) {
+    async fn start_timer(&self, request_path: String) {
         let mut timers = self.timers.lock().await;
 
-        if let Some(timer_state) = timers.get_mut(&url) {
+        if let Some(timer_state) = timers.get_mut(&request_path) {
             // Increment the timer ID.
             timer_state.timer_id += 1;
             let timer_id = timer_state.timer_id;
@@ -89,7 +89,7 @@ impl SonarrHandler {
                 tokio::time::sleep(duration).await;
 
                 let mut timers = timers.lock().await;
-                if let Some(timer_state) = timers.get_mut(&url) {
+                if let Some(timer_state) = timers.get_mut(&request_path) {
                     // Only proceed if the timer ID hasn't changed.
                     if timer_state.timer_id == timer_id {
                         // Process the queued requests here.
