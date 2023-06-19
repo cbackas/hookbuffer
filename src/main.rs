@@ -7,6 +7,7 @@ use warp::path::FullPath;
 use warp::Filter;
 
 mod handlers;
+mod structs;
 
 #[tokio::main]
 async fn main() {
