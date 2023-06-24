@@ -6,6 +6,8 @@ use warp::http::HeaderMap;
 use warp::path::FullPath;
 use warp::Filter;
 
+use crate::structs::hookbuffer::HBQuery;
+
 mod handlers;
 mod structs;
 
@@ -18,10 +20,11 @@ async fn main() {
         .and(warp::header::headers_cloned())
         .and(warp::body::json::<Value>())
         .and(warp::path::full())
+        .and(warp::query::<HBQuery>())
         .map({
             let sonarr_handler = Arc::clone(&sonarr_handler);
 
-            move |headers: HeaderMap, body: Value, path: FullPath| {
+            move |headers: HeaderMap, body: Value, path: FullPath, query: HBQuery| {
                 let sonarr_handler = Arc::clone(&sonarr_handler);
                 let path = path.as_str().to_string();
 
