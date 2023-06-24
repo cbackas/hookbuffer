@@ -1,9 +1,14 @@
-use serde_json::Value;
+use crate::structs::discord::DiscordWebhook;
+use crate::structs::sonarr::RequestBody;
+use reqwest::{Error};
+use serde_json::{Value};
 use std::collections::HashMap;
+use std::env;
+use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{Duration, Instant};
-use warp::http::HeaderMap;
+use twilight_model::channel::message::embed::{Embed};
 
 pub struct SonarrHandler {
     // This will hold the state for each ongoing timer and queue of requests.
@@ -22,8 +27,27 @@ struct TimerState {
 
 struct RequestData {
     // This will hold the headers and body of each queued request.
-    headers: HeaderMap,
     body: Value,
+}
+
+#[derive(Eq, PartialEq, Hash, Debug)]
+struct SonarrGroupKey(u64, u64);
+
+#[derive(Debug)]
+struct SonarrGroups(HashMap<SonarrGroupKey, Vec<RequestBody>>);
+
+impl Deref for SonarrGroups {
+    type Target = HashMap<SonarrGroupKey, Vec<RequestBody>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for SonarrGroups {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl SonarrHandler {
@@ -33,7 +57,7 @@ impl SonarrHandler {
         }
     }
 
-    pub async fn handle(&self, request_path: String, headers: HeaderMap, body: Value) -> impl warp::Reply {
+    pub async fn handle(&self, request_path: String, body: Value) -> impl warp::Reply {
         let new_state: Option<TimerState>;
 
         {
@@ -42,13 +66,13 @@ impl SonarrHandler {
             // Check if there is already a TimerState for this URL.
             if let Some(timer_state) = timers.get_mut(&request_path) {
                 // If there is a TimerState, add this request to the queue and update the timer_end Instant.
-                timer_state.queue.push(RequestData { headers, body });
+                timer_state.queue.push(RequestData { body });
                 timer_state.timer_end = Instant::now() + Duration::from_secs(15);
                 new_state = None;
             } else {
                 // If there isn't a TimerState, create one with this request in the queue and a new timer_end Instant.
                 let timer_state = TimerState {
-                    queue: vec![RequestData { headers, body }],
+                    queue: vec![RequestData { body }],
                     timer_end: Instant::now() + Duration::from_secs(15), // start a new timer for 15 seconds
                     timer_id: 0,
                 };
@@ -93,7 +117,7 @@ impl SonarrHandler {
                     // Only proceed if the timer ID hasn't changed.
                     if timer_state.timer_id == timer_id {
                         // Process the queued requests here.
-                        process_queued_requests(&mut timer_state.queue).await;
+                        process_and_send_requests(&mut timer_state.queue, &request_path).await;
                     }
                 }
             });
@@ -101,10 +125,92 @@ impl SonarrHandler {
     }
 }
 
-// This function will process the queued requests for a given URL.
-// It groups up all the sonarr messages and forwards them to the destination with the correct formatting
-async fn process_queued_requests(queue: &mut Vec<RequestData>) {
-    while let Some(request_data) = queue.pop() {
-        println!("Processing request with body: {:?}", request_data.body);
+async fn process_and_send_requests(queue: &mut Vec<RequestData>, request_path: &str) {
+    let grouped_requests = group_sonarr_requests(queue);
+
+    let discord_baseurl =
+        env::var("DISCORD_WEBHOOK_BASEURL").unwrap_or("https://discord.com".to_string());
+    let matrix_baseurl = env::var("MATRIX_WEBHOOK_BASEURL").unwrap_or("matrixlol".to_string());
+
+    let baseurl = if request_path.ends_with("/matrix") {
+        matrix_baseurl
+    } else if request_path.ends_with("/discord") {
+        discord_baseurl
+    } else {
+        "idklol".to_string() // or handle this case differently
+    };
+
+    for (_group_key, requests) in grouped_requests.iter() {
+        let description = requests
+            .iter()
+            .flat_map(|request| {
+                request.episodes.iter().map(move |episode| {
+                    let quality = request
+                        .episode_file
+                        .as_ref()
+                        .map_or("None", |episode_file| &episode_file.quality);
+
+                    format!(
+                        "{}x{:02} - {} [{}]",
+                        episode.season_number, episode.episode_number, episode.title, quality
+                    )
+                })
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        
+        
+        let embed = Embed {
+            title: Some(requests[0].series.title.to_string()),
+            color: Some(0xFF0000), // Discord's color for red
+            fields: Vec::new(),
+            kind: "rich".to_string(),
+            author: None,
+            description: Some(description),
+            footer: None,
+            image: None,
+            provider: None,
+            thumbnail: None,
+            timestamp: None,
+            url: None,
+            video: None,
+        };
+
+        let webhook = DiscordWebhook {
+            content: "".to_string(),
+            embeds: vec![embed],
+        };
+        
+        let url = format!("{}{}", baseurl, request_path);
+        if let Err(e) = send_post_request(url, webhook).await {
+            eprintln!("Failed to send POST request: {}", e);
+        }
     }
+}
+
+fn group_sonarr_requests(queue: &mut Vec<RequestData>) -> SonarrGroups {
+    let mut grouped_requests: SonarrGroups = SonarrGroups(HashMap::new());
+
+    while let Some(request_data) = queue.pop() {
+        let request: RequestBody = serde_json::from_value(request_data.body.clone()).unwrap();
+        for episode in request.episodes.iter() {
+            let group_key = SonarrGroupKey(episode.series_id, episode.season_number); // Only series_id is used as the key
+            grouped_requests
+                .entry(group_key)
+                .or_insert(Vec::new())
+                .push(request.clone());
+        }
+    }
+
+    grouped_requests
+}
+
+async fn send_post_request(url: String, payload: DiscordWebhook) -> Result<(), Error> {
+    // let client = Client::new();
+    // client.post(url).json(&payload).send().await?;
+    let payload_str = serde_json::to_string_pretty(&payload);
+
+    // Print the formatted JSON string
+    println!("Sending POST request to {}\n{:#?}", url, payload_str);
+    Ok(())
 }

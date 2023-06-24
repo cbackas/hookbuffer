@@ -30,10 +30,9 @@ async fn main() {
                         Ok(agent) if agent.to_lowercase().starts_with("sonarr") => {
                             println!("Processing Sonarr data");
                             // Call the handle method on the SonarrHandler.
-                            let headers = headers.clone();
                             let body = body.clone();
                             tokio::spawn(async move {
-                                sonarr_handler.handle(path, headers, body).await;
+                                sonarr_handler.handle(path, body).await;
                             });
                             warp::reply::with_status(
                                 "Processing Sonarr data",

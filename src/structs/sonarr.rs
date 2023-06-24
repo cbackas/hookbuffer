@@ -2,90 +2,111 @@ use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
-// Represents the series information.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Series {
-    pub id: u64,
-    pub imdb_id: String,
-    pub path: String,
-    pub title: String,
-    pub title_slug: String,
-    pub tv_maze_id: u64,
-    pub tvdb_id: u64,
-    pub type_: String,
-    pub year: u64,
-}
-
-// Represents the episode information.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Episode {
-    pub air_date: String,
-    pub air_date_utc: String,
-    pub episode_number: u64,
-    pub id: u64,
-    pub overview: String,
-    pub season_number: u64,
-    pub series_id: u64,
-    pub title: String,
-}
-
-// Represents the custom format information.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CustomFormat {
-    pub id: u64,
-    pub name: String,
+    pub id: Option<u64>,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CustomFormatInfo {
-    pub custom_format_score: u64,
-    pub custom_formats: Vec<CustomFormat>,
+    #[serde(rename = "customFormatScore")]
+    pub custom_format_score: Option<u64>,
+    #[serde(rename = "customFormats")]
+    pub custom_formats: Option<Vec<CustomFormat>>,
 }
 
-// Represents the release information.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Release {
-    pub custom_format_score: u64,
-    pub custom_formats: Vec<String>,
-    pub indexer: String,
-    pub quality: String,
-    pub quality_version: u64,
-    pub release_group: String,
-    pub release_title: String,
-    pub size: u64,
-}
-
-// Represents the episode file information.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct EpisodeFile {
-    pub date_added: String,
-    pub id: u64,
-    pub media_info: HashMap<String, Value>,
-    pub path: String,
+    #[serde(rename = "dateAdded")]
+    pub date_added: Option<String>,
+    pub id: Option<u64>,
+    #[serde(rename = "mediaInfo")]
+    pub media_info: Option<HashMap<String, Value>>,
+    pub path: Option<String>,
     pub quality: String,
-    pub quality_version: u64,
-    pub relative_path: String,
-    pub release_group: String,
-    pub scene_name: String,
-    pub size: u64,
+    #[serde(rename = "qualityVersion")]
+    pub quality_version: Option<u64>,
+    #[serde(rename = "relativePath")]
+    pub relative_path: Option<String>,
+    #[serde(rename = "releaseGroup")]
+    pub release_group: Option<String>,
+    #[serde(rename = "sceneName")]
+    pub scene_name: Option<String>,
+    pub size: Option<u64>,
 }
 
-// Represents the main request body.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Episode {
+    #[serde(rename = "airDate")]
+    pub air_date: Option<String>,
+    #[serde(rename = "airDateUtc")]
+    pub air_date_utc: Option<String>,
+    #[serde(rename = "episodeNumber")]
+    pub episode_number: u64,
+    pub id: Option<u64>,
+    pub overview: Option<String>,
+    #[serde(rename = "seasonNumber")]
+    pub season_number: u64,
+    #[serde(rename = "seriesId")]
+    pub series_id: u64,
+    pub title: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Release {
+    #[serde(rename = "customFormatScore")]
+    pub custom_format_score: Option<u64>,
+    #[serde(rename = "customFormats")]
+    pub custom_formats: Option<Vec<String>>,
+    pub indexer: Option<String>,
+    pub quality: Option<String>,
+    #[serde(rename = "qualityVersion")]
+    pub quality_version: Option<u64>,
+    #[serde(rename = "releaseGroup")]
+    pub release_group: Option<String>,
+    #[serde(rename = "releaseTitle")]
+    pub release_title: Option<String>,
+    pub size: Option<u64>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Series {
+    pub id: Option<u64>,
+    #[serde(rename = "imdbId")]
+    pub imdb_id: Option<String>,
+    pub path: Option<String>,
+    pub title: String,
+    #[serde(rename = "titleSlug")]
+    pub title_slug: Option<String>,
+    #[serde(rename = "tvMazeId")]
+    pub tv_maze_id: Option<u64>,
+    #[serde(rename = "tvdbId")]
+    pub tvdb_id: Option<u64>,
+    #[serde(rename = "type")]
+    pub type_: Option<String>,
+    pub year: Option<u64>,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RequestBody {
-    pub application_url: String,
-    pub custom_format_info: CustomFormatInfo,
-    pub download_client: String,
-    pub download_client_type: String,
-    pub download_id: String,
+    #[serde(rename = "applicationUrl")]
+    pub application_url: Option<String>,
+    #[serde(rename = "customFormatInfo")]
+    pub custom_format_info: Option<CustomFormatInfo>,
+    #[serde(rename = "downloadClient")]
+    pub download_client: Option<String>,
+    #[serde(rename = "downloadId")]
+    pub download_id: Option<String>,
     pub episodes: Vec<Episode>,
-    pub event_type: String,
-    pub instance_name: String,
-    pub release: Release,
+    #[serde(rename = "eventType")]
+    pub event_type: Option<String>,
+    #[serde(rename = "instanceName")]
+    pub instance_name: Option<String>,
+    pub release: Option<Release>,
     pub series: Series,
-    // Optional fields.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "episodeFile")]
     pub episode_file: Option<EpisodeFile>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "isUpgrade")]
     pub is_upgrade: Option<bool>,
 }
