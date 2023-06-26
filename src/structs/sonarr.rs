@@ -3,21 +3,21 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CustomFormat {
+pub struct SonarrCustomFormat {
     pub id: Option<u64>,
     pub name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CustomFormatInfo {
+pub struct SonarrCustomFormatInfo {
     #[serde(rename = "customFormatScore")]
     pub custom_format_score: Option<u64>,
     #[serde(rename = "customFormats")]
-    pub custom_formats: Option<Vec<CustomFormat>>,
+    pub custom_formats: Option<Vec<SonarrCustomFormat>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct EpisodeFile {
+pub struct SonarrEpisodeFile {
     #[serde(rename = "dateAdded")]
     pub date_added: Option<String>,
     pub id: Option<u64>,
@@ -37,7 +37,7 @@ pub struct EpisodeFile {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Episode {
+pub struct SonarrEpisode {
     #[serde(rename = "airDate")]
     pub air_date: Option<String>,
     #[serde(rename = "airDateUtc")]
@@ -54,7 +54,7 @@ pub struct Episode {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Release {
+pub struct SonarrRelease {
     #[serde(rename = "customFormatScore")]
     pub custom_format_score: Option<u64>,
     #[serde(rename = "customFormats")]
@@ -71,7 +71,7 @@ pub struct Release {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Series {
+pub struct SonarrSeries {
     pub id: Option<u64>,
     #[serde(rename = "imdbId")]
     pub imdb_id: Option<String>,
@@ -89,24 +89,24 @@ pub struct Series {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct RequestBody {
+pub struct SonarrRequestBody {
     #[serde(rename = "applicationUrl")]
     pub application_url: Option<String>,
     #[serde(rename = "customFormatInfo")]
-    pub custom_format_info: Option<CustomFormatInfo>,
+    pub custom_format_info: Option<SonarrCustomFormatInfo>,
     #[serde(rename = "downloadClient")]
     pub download_client: Option<String>,
     #[serde(rename = "downloadId")]
     pub download_id: Option<String>,
-    pub episodes: Vec<Episode>,
+    pub episodes: Vec<SonarrEpisode>,
     #[serde(rename = "eventType")]
     pub event_type: Option<String>,
     #[serde(rename = "instanceName")]
     pub instance_name: Option<String>,
-    pub release: Option<Release>,
-    pub series: Series,
+    pub release: Option<SonarrRelease>,
+    pub series: SonarrSeries,
     #[serde(rename = "episodeFile")]
-    pub episode_file: Option<EpisodeFile>,
+    pub episode_file: Option<SonarrEpisodeFile>,
     #[serde(rename = "isUpgrade")]
     pub is_upgrade: Option<bool>,
 }

@@ -1,14 +1,15 @@
 use crate::structs::discord::DiscordWebhook;
-use crate::structs::sonarr::RequestBody;
-use reqwest::{Error};
-use serde_json::{Value};
+use crate::structs::hookbuffer::{HBOutput, HBQuery};
+use crate::structs::sonarr::SonarrRequestBody;
+use reqwest::Error;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{Duration, Instant};
-use twilight_model::channel::message::embed::{Embed};
+use twilight_model::channel::message::embed::Embed;
 
 pub struct SonarrHandler {
     // This will hold the state for each ongoing timer and queue of requests.
@@ -26,18 +27,25 @@ struct TimerState {
 }
 
 struct RequestData {
-    // This will hold the headers and body of each queued request.
     body: Value,
+    query: HBQuery,
 }
 
 #[derive(Eq, PartialEq, Hash, Debug)]
 struct SonarrGroupKey(u64, u64);
 
 #[derive(Debug)]
-struct SonarrGroups(HashMap<SonarrGroupKey, Vec<RequestBody>>);
+struct SonarrData {
+    episodes: Vec<SonarrRequestBody>,
+    output_format: HBOutput,
+    destination_url: String,
+}
+
+#[derive(Debug)]
+struct SonarrGroups(HashMap<SonarrGroupKey, SonarrData>);
 
 impl Deref for SonarrGroups {
-    type Target = HashMap<SonarrGroupKey, Vec<RequestBody>>;
+    type Target = HashMap<SonarrGroupKey, SonarrData>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -57,7 +65,12 @@ impl SonarrHandler {
         }
     }
 
-    pub async fn handle(&self, request_path: String, body: Value) -> impl warp::Reply {
+    pub async fn handle(
+        &self,
+        request_path: String,
+        body: Value,
+        query: HBQuery,
+    ) -> impl warp::Reply {
         let new_state: Option<TimerState>;
 
         {
@@ -66,13 +79,13 @@ impl SonarrHandler {
             // Check if there is already a TimerState for this URL.
             if let Some(timer_state) = timers.get_mut(&request_path) {
                 // If there is a TimerState, add this request to the queue and update the timer_end Instant.
-                timer_state.queue.push(RequestData { body });
+                timer_state.queue.push(RequestData { body, query });
                 timer_state.timer_end = Instant::now() + Duration::from_secs(15);
                 new_state = None;
             } else {
                 // If there isn't a TimerState, create one with this request in the queue and a new timer_end Instant.
                 let timer_state = TimerState {
-                    queue: vec![RequestData { body }],
+                    queue: vec![RequestData { body, query }],
                     timer_end: Instant::now() + Duration::from_secs(15), // start a new timer for 15 seconds
                     timer_id: 0,
                 };
@@ -140,8 +153,9 @@ async fn process_and_send_requests(queue: &mut Vec<RequestData>, request_path: &
         "idklol".to_string() // or handle this case differently
     };
 
-    for (_group_key, requests) in grouped_requests.iter() {
-        let description = requests
+    for (_group_key, sonarr_data) in grouped_requests.iter() {
+        let description = sonarr_data
+            .episodes
             .iter()
             .flat_map(|request| {
                 request.episodes.iter().map(move |episode| {
@@ -158,10 +172,9 @@ async fn process_and_send_requests(queue: &mut Vec<RequestData>, request_path: &
             })
             .collect::<Vec<_>>()
             .join("\n");
-        
-        
+
         let embed = Embed {
-            title: Some(requests[0].series.title.to_string()),
+            title: Some(sonarr_data.episodes[0].series.title.to_string()),
             color: Some(0xFF0000), // Discord's color for red
             fields: Vec::new(),
             kind: "rich".to_string(),
@@ -180,7 +193,7 @@ async fn process_and_send_requests(queue: &mut Vec<RequestData>, request_path: &
             content: "".to_string(),
             embeds: vec![embed],
         };
-        
+
         let url = format!("{}{}", baseurl, request_path);
         if let Err(e) = send_post_request(url, webhook).await {
             eprintln!("Failed to send POST request: {}", e);
@@ -192,13 +205,19 @@ fn group_sonarr_requests(queue: &mut Vec<RequestData>) -> SonarrGroups {
     let mut grouped_requests: SonarrGroups = SonarrGroups(HashMap::new());
 
     while let Some(request_data) = queue.pop() {
-        let request: RequestBody = serde_json::from_value(request_data.body.clone()).unwrap();
-        for episode in request.episodes.iter() {
+        let sonarr_request: SonarrRequestBody =
+            serde_json::from_value(request_data.body.clone()).unwrap();
+        for episode in sonarr_request.episodes.iter() {
             let group_key = SonarrGroupKey(episode.series_id, episode.season_number); // Only series_id is used as the key
             grouped_requests
                 .entry(group_key)
-                .or_insert(Vec::new())
-                .push(request.clone());
+                .or_insert(SonarrData {
+                    episodes: Vec::new(),
+                    output_format: request_data.query.hb_output.clone(),
+                    destination_url: request_data.query.hb_dest.clone(),
+                })
+                .episodes
+                .push(sonarr_request.clone());
         }
     }
 
