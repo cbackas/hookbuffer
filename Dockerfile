@@ -9,4 +9,3 @@ FROM rust as runtime
 COPY --from=build /app/target/release/hookbuffer /usr/local/bin/hookbuffer
 
 CMD ["hookbuffer"]
-
