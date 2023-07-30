@@ -12,16 +12,16 @@ use warp::reply::Json;
 
 pub struct SonarrHandler {
     // this will hold the state for each ongoing timer and queue of requests
-    // the HashMap key will be the URL of the request, and the value will be the state for that URL.
+    // the HashMap key will be the URL of the request, and the value will be the state for that URL
     timers: Arc<Mutex<HashMap<String, TimerState>>>,
 }
 
 struct TimerState {
-    // this will hold the queue of requests for this URL.
+    // this will hold the queue of requests for this URL
     queue: Vec<SonarrRequestBody>,
-    // this will hold when the timer for this URL is set to expire.
+    // this will hold when the timer for this URL is set to expire
     timer_end: Instant,
-    // this will hold the current timer ID for this URL.
+    // this will hold the current timer ID for this URL
     timer_id: usize,
 }
 
@@ -55,7 +55,7 @@ impl SonarrHandler {
             || event_type == SonarrEventType::Download
             || event_type == SonarrEventType::Upgrade)
         {
-            // if the event type is not Download or Upgrade, return a 400 Bad Request.
+            // if the event type is not Download or Upgrade, return a 400
             return warp::reply::with_status(
                 warp::reply::json(&"Unsupported event type, must be Grab or Download"),
                 warp::http::StatusCode::BAD_REQUEST,
@@ -77,13 +77,13 @@ impl SonarrHandler {
         {
             let mut timers = self.timers.lock().await;
 
-            // check if there is already a TimerState for this URL.
+            // check if there is already a TimerState for this URL
             if let Some(timer_state) = timers.get_mut(&request_path) {
-                // if there is a TimerState, add this request to the queue and update the timer_end Instant.
+                // if there is a TimerState, add this request to the queue and update the timer_end Instant
                 timer_state.queue.push(sonarr_request);
                 timer_state.timer_end = timer_end;
             } else {
-                // if there isn't a TimerState, create one with this request in the queue and a new timer_end Instant.
+                // if there isn't a TimerState, create one with this request in the queue and a new timer_end Instant
                 println!("[Timer] new timer started for {}", request_path);
                 let timer_state = TimerState {
                     queue: vec![sonarr_request],
@@ -95,7 +95,7 @@ impl SonarrHandler {
         }
 
         // now that the request has been added to the queue and the timer_end Instant has been updated
-        // we need to start the timer if it's not already running.
+        // we need to start the timer if it's not already running
         self.start_timer(request_path).await;
 
         warp::reply::with_status(
@@ -105,23 +105,25 @@ impl SonarrHandler {
     }
 
     async fn start_timer(&self, request_path: String) {
-        // Get the needed information first and then release the lock
+        // get the needed information first and then release the lock
         let (timer_id, timer_end) = {
             let mut timers = self.timers.lock().await;
+
             if let Some(timer_state) = timers.get_mut(&request_path) {
-                // increment the timer ID.
+                // increment the timer ID
                 timer_state.timer_id += 1;
                 let timer_id = timer_state.timer_id;
 
-                // start a new timer.
+                // start a new timer
                 let timer_end = timer_state.timer_end;
-                (timer_id, timer_end) // Return this information to use later
+
+                (timer_id, timer_end) // return this information to use later
             } else {
-                return; // No timer state found for this request_path
+                return; // no timer state found for this request_path
             }
         };
 
-        // Now you're free to start the timer without holding the lock
+        // now you're free to start the timer without holding the lock
         let timers = Arc::clone(&self.timers);
         tokio::spawn(process_timer(timers, request_path, timer_id, timer_end));
     }
@@ -140,7 +142,8 @@ async fn process_timer(
     let timer_state_queue = {
         let mut timers = timers.lock().await;
         if let Some(timer_state) = timers.get_mut(&request_path) {
-            // only proceed if the timer ID hasn't changed.
+            // only proceed if the timer ID hasn't changed
+            // this is how we know the timer hasn't been reset since this function was spawned
             if timer_state.timer_id == timer_id {
                 println!(
                     "[Timer] timer expired for {} with {} requests in queue",
@@ -148,7 +151,7 @@ async fn process_timer(
                     timer_state.queue.len()
                 );
 
-                // Take ownership of the queue, leaving an empty one in its place.
+                // take ownership of the queue, leaving an empty one in its place
                 Some(std::mem::take(&mut timer_state.queue))
             } else {
                 None

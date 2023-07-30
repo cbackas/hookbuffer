@@ -10,11 +10,14 @@ use crate::sonarr_handler::SonarrHandler;
 mod send;
 mod sonarr_handler;
 mod structs;
+
 #[tokio::main]
 async fn main() {
     // SonarrHandler struct manages the state for the sonarr requests
     let sonarr_handler = Arc::new(SonarrHandler::new());
 
+    // Warp web server route
+    // accept POSTs to all paths, filters for Sonarr requests and passes them to the SonarrHandler
     let route = warp::post()
         .and(warp::header::headers_cloned())
         .and(warp::body::json::<Value>())
@@ -29,6 +32,7 @@ async fn main() {
                 if let Some(user_agent) = headers.get("User-Agent") {
                     match user_agent.to_str() {
                         Ok(agent) if agent.to_lowercase().starts_with("sonarr") => {
+                            // send the request to the sonarr handler async and move on
                             tokio::spawn(async move {
                                 sonarr_handler.handle(path, body).await;
                             });
@@ -42,7 +46,7 @@ async fn main() {
                         }
 
                         _ => {
-                            // Unsupported content type
+                            // not sonarr, bad request
                             println!("Received unsupported User-Agent");
                             warp::reply::with_status(
                                 warp::reply::json(&"Received unsupported User-Agent"),
@@ -51,7 +55,7 @@ async fn main() {
                         }
                     }
                 } else {
-                    // If there is no User-Agent header, return a 400 Bad Request.
+                    // no user agent, bad request
                     warp::reply::with_status(
                         warp::reply::json(&"No User-Agent header"),
                         warp::http::StatusCode::BAD_REQUEST,
