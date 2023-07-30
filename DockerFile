@@ -1,11 +1,12 @@
-FROM golang:1.14
- 
-RUN mkdir -p /app/cmd/hookbuffer
- 
+FROM rust as build
+ADD ./src /app/src
+ADD ./Cargo.lock /app/Cargo.lock
+ADD ./Cargo.toml /app/Cargo.toml
 WORKDIR /app
- 
-ADD ./cmd/hookbuffer ./cmd/hookbuffer
- 
-RUN go build ./cmd/hookbuffer/
- 
-CMD ["./hookbuffer"]
+RUN cargo build --release
+
+FROM rust as runtime
+COPY --from=build /app/target/release/hookbuffer /usr/local/bin/hookbuffer
+
+CMD ["hookbuffer"]
+
