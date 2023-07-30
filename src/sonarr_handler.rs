@@ -170,10 +170,11 @@ async fn process_timer(
 
         for (group_key, sonarr_data) in sorted_groups {
             let webhook = convert_group_to_webhook(sonarr_data);
+
             match send_post_request(
                 "https://discord.com/".to_string(),
                 request_path.to_string(),
-                webhook
+                webhook,
             )
             .await
             {
