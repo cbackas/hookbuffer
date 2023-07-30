@@ -18,7 +18,7 @@ const noteKeywords = releaseRules.map(rule => rule.tag)
 
 /** @type {Options} */
 module.exports = {
-  branches: ['main'],
+  branches: ['master'],
   tagFormat: '${version}',
   repositoryUrl: 'https://github.com/cbackas/Hookbuffer',
   plugins: [
