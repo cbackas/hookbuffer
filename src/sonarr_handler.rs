@@ -166,13 +166,14 @@ async fn process_timer(
 
         let mut sorted_groups: Vec<(&SonarrGroupKey, &Vec<SonarrRequestBody>)> =
             grouped_requests.iter().collect();
-        sorted_groups.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        sorted_groups.sort_unstable_by(|a, b| a.0.cmp(b.0));
 
         for (group_key, sonarr_data) in sorted_groups {
+            let webhook = convert_group_to_webhook(sonarr_data);
             match send_post_request(
                 "https://discord.com/".to_string(),
                 request_path.to_string(),
-                convert_group_to_webhook(&sonarr_data),
+                webhook
             )
             .await
             {
