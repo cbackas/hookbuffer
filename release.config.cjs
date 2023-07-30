@@ -54,7 +54,7 @@ module.exports = {
           dockerFile: 'Dockerfile',
           dockerRegistry: 'ghcr.io',
           dockerProject: 'cbackas',
-          dockerImage: 'Hookbuffer'
+          dockerImage: 'hookbuffer'
         }
       ]
   ]
