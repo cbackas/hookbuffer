@@ -9,7 +9,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.ref == 'ref/heads/master'
+    if: startsWith(github.ref, 'ref/heads/')
     steps:
       - name: Checkout
         uses: actions/checkout@v3
