@@ -13,9 +13,17 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v2
 
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+
       - name: Run linters
         uses: wearerequired/lint-action@v2
         with:
+          auto_fix: false
           rustfmt: true
           clippy: true
 
