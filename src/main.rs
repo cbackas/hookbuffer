@@ -38,9 +38,7 @@ async fn main() {
                             });
 
                             warp::reply::with_status(
-                                warp::reply::json(
-                                    &"Processing and fowarding Sonarr episode webhook",
-                                ),
+                                warp::reply::json(&"Processing and fowarding Sonarr episode webhook"),
                                 warp::http::StatusCode::OK,
                             )
                         }
@@ -48,18 +46,12 @@ async fn main() {
                         _ => {
                             // not sonarr, bad request
                             println!("Received unsupported User-Agent");
-                            warp::reply::with_status(
-                                warp::reply::json(&"Received unsupported User-Agent"),
-                                warp::http::StatusCode::BAD_REQUEST,
-                            )
+                            warp::reply::with_status(warp::reply::json(&"Received unsupported User-Agent"), warp::http::StatusCode::BAD_REQUEST)
                         }
                     }
                 } else {
                     // no user agent, bad request
-                    warp::reply::with_status(
-                        warp::reply::json(&"No User-Agent header"),
-                        warp::http::StatusCode::BAD_REQUEST,
-                    )
+                    warp::reply::with_status(warp::reply::json(&"No User-Agent header"), warp::http::StatusCode::BAD_REQUEST)
                 }
             }
         });

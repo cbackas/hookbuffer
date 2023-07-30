@@ -5,11 +5,7 @@ use tokio::time::sleep;
 
 use crate::structs::{discord::DiscordWebhook, hookbuffer::RequestError};
 
-pub async fn send_post_request(
-    base_url: String,
-    path: String,
-    payload: DiscordWebhook,
-) -> Result<(), RequestError> {
+pub async fn send_post_request(base_url: String, path: String, payload: DiscordWebhook) -> Result<(), RequestError> {
     let base_url = base_url.strip_suffix('/').unwrap_or(&base_url);
     let full_url = format!("{}{}", base_url, path);
 
