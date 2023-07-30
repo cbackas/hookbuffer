@@ -166,15 +166,13 @@ async fn process_timer(
 
         let mut sorted_groups: Vec<(&SonarrGroupKey, &Vec<SonarrRequestBody>)> =
             grouped_requests.iter().collect();
-        sorted_groups.sort_by(|a, b| a.0.cmp(&b.0));
+        sorted_groups.sort_unstable_by(|a, b| a.0.cmp(&b.0));
 
         for (group_key, sonarr_data) in sorted_groups {
-            let webhook = convert_group_to_webhook(&sonarr_data);
-
             match send_post_request(
                 "https://discord.com/".to_string(),
                 request_path.to_string(),
-                webhook,
+                convert_group_to_webhook(&sonarr_data),
             )
             .await
             {
@@ -233,7 +231,7 @@ fn group_sonarr_requests(
 }
 
 // convert a group of sonarr requests into a discord webhook with embed
-fn convert_group_to_webhook(sonarr_data: &Vec<SonarrRequestBody>) -> DiscordWebhook {
+fn convert_group_to_webhook(sonarr_data: &[SonarrRequestBody]) -> DiscordWebhook {
     let event_type = sonarr_data[0].event_type.as_ref().unwrap();
     let series_title = &sonarr_data[0].series.title;
     let season_number = sonarr_data[0].episodes[0].season_number;
@@ -253,7 +251,7 @@ fn convert_group_to_webhook(sonarr_data: &Vec<SonarrRequestBody>) -> DiscordWebh
             let quality = request
                 .episode_file
                 .as_ref()
-                .and_then(|episode_file| Some(episode_file.clone().quality))
+                .map(|episode_file| episode_file.quality.clone())
                 .or_else(|| request.release.clone()?.quality)
                 .unwrap_or_else(|| "None".to_string());
             request.episodes.iter().map(move |episode| {

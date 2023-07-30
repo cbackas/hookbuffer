@@ -10,7 +10,7 @@ pub async fn send_post_request(
     path: String,
     payload: DiscordWebhook,
 ) -> Result<(), RequestError> {
-    let base_url = base_url.strip_suffix("/").unwrap_or(&base_url);
+    let base_url = base_url.strip_suffix('/').unwrap_or(&base_url);
     let full_url = format!("{}{}", base_url, path);
 
     let client = Client::new();
