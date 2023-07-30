@@ -6,23 +6,6 @@ on:
       - master
 
 jobs:
-  format:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v2
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - name: Check Rust formatting
-        run: |
-          cargo fmt --all -- --check
-
   lint:
     runs-on: ubuntu-latest
 
@@ -30,15 +13,11 @@ jobs:
       - name: Check out Git repository
         uses: actions/checkout@v2
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Run linters
+        uses: wearerequired/lint-action@v2
         with:
-          toolchain: stable
-          override: true
-
-      - name: Check Rust formatting
-        run: |
-          cargo clippy -- -D warnings
+          rustfmt: true
+          clippy: true
 
   test:
     runs-on: ubuntu-latest
