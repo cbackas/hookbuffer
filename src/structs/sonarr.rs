@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -88,6 +88,22 @@ pub struct SonarrSeries {
     pub year: Option<u64>,
 }
 
+#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize, Clone, PartialOrd, Ord)]
+pub enum SonarrEventType {
+    Test,
+    Grab,
+    Download,
+    Upgrade,
+    Rename,
+    SeriesAdd,
+    SeriesDelete,
+    EpisodeFileDelete,
+    Health,
+    ApplicationUpdate,
+    HealthRestored,
+    ManualInteractionRequired,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SonarrRequestBody {
     #[serde(rename = "applicationUrl")]
@@ -100,7 +116,7 @@ pub struct SonarrRequestBody {
     pub download_id: Option<String>,
     pub episodes: Vec<SonarrEpisode>,
     #[serde(rename = "eventType")]
-    pub event_type: Option<String>,
+    pub event_type: Option<SonarrEventType>,
     #[serde(rename = "instanceName")]
     pub instance_name: Option<String>,
     pub release: Option<SonarrRelease>,
