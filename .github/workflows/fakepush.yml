@@ -1,0 +1,13 @@
+name: asdfasdfafd
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "*"
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'ref/heads/')
+    steps:
+      - name: Run asfdasdf
+        run: echo "print thing"
