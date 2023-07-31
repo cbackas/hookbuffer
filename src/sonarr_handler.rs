@@ -150,6 +150,8 @@ async fn process_timer(timers: Arc<Mutex<HashMap<String, TimerState>>>, request_
         }
     };
 
+    let destination_url = crate::env::get_destination_url();
+
     if let Some(mut queue) = timer_state_queue {
         let grouped_requests = group_sonarr_requests(&mut queue);
 
@@ -159,7 +161,7 @@ async fn process_timer(timers: Arc<Mutex<HashMap<String, TimerState>>>, request_
         for (group_key, sonarr_data) in sorted_groups {
             let webhook = convert_group_to_webhook(sonarr_data);
 
-            match send_post_request("https://discord.com/".to_string(), request_path.to_string(), webhook).await {
+            match send_post_request(destination_url.to_string(), request_path.to_string(), webhook).await {
                 Ok(_) => {
                     println!("[Forwarded] {:?} sent to discord succesfully successfully", group_key);
                 }
