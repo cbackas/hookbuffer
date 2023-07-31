@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use serde_json::Value;
@@ -23,10 +24,11 @@ async fn main() {
         .and(warp::header::headers_cloned())
         .and(warp::body::json::<Value>())
         .and(warp::path::full())
+        .and(warp::query::<HashMap<String, String>>())
         .map({
             let sonarr_handler = Arc::clone(&sonarr_handler);
 
-            move |headers: HeaderMap, body: Value, path: FullPath| {
+            move |headers: HeaderMap, body: Value, path: FullPath, map: HashMap<String, String>| {
                 let sonarr_handler = Arc::clone(&sonarr_handler);
                 let path = path.as_str().to_string();
 
@@ -35,7 +37,7 @@ async fn main() {
                         Ok(agent) if agent.to_lowercase().starts_with("sonarr") => {
                             // send the request to the sonarr handler async and move on
                             tokio::spawn(async move {
-                                sonarr_handler.handle(path, body).await;
+                                sonarr_handler.handle(path, body, map).await;
                             });
 
                             warp::reply::with_status(
