@@ -228,7 +228,7 @@ fn convert_group_to_webhook(sonarr_data: &[SonarrRequestBody]) -> DiscordWebhook
         _ => format!("{}: {} Season {:02}", content, series_title, season_number),
     };
 
-    let description = sonarr_data
+    let mut episodes_with_quality: Vec<_> = sonarr_data
         .iter()
         .flat_map(|request| {
             let quality = request
@@ -237,13 +237,17 @@ fn convert_group_to_webhook(sonarr_data: &[SonarrRequestBody]) -> DiscordWebhook
                 .map(|episode_file| episode_file.quality.clone())
                 .or_else(|| request.release.clone()?.quality)
                 .unwrap_or_else(|| "None".to_string());
-            request.episodes.iter().map(move |episode| {
-                format!(
-                    "{:02}x{:02} - {} [{}]",
-                    episode.season_number, episode.episode_number, episode.title, quality
-                )
-            })
+            request
+                .episodes
+                .iter()
+                .map(move |episode| (episode.season_number, episode.episode_number, episode.title.clone(), quality.clone()))
         })
+        .collect();
+    episodes_with_quality.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.cmp(&b.2)).then(a.3.cmp(&b.3)));
+
+    let description = episodes_with_quality
+        .into_iter()
+        .map(|(season_number, episode_number, title, quality)| format!("{:02}x{:02} - {} [{}]", season_number, episode_number, title, quality))
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -346,91 +350,102 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_group_sonarr_requests() {
-        let mut queue = vec![
-            // group 1
-            create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
-            create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Grab),
-            // group 2
-            create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Download),
-            create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Download),
-            // group 3
-            create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Upgrade),
-            create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Upgrade),
-            // group 4
-            create_episode_request("The Fakest Show", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
-            create_episode_request("The Fakest Show", "Fake Episode 2", 1, 2, SonarrEventType::Grab),
-            // group 5
-            create_episode_request("The Fakest Show", "Fake Episode 1", 1, 1, SonarrEventType::Download),
-            create_episode_request("The Fakest Show", "Fake Episode 2", 1, 2, SonarrEventType::Download),
-            // group 6
-            create_episode_request("The Fakest Show", "Fake Episode 1", 1, 1, SonarrEventType::Upgrade),
-            create_episode_request("The Fakest Show", "Fake Episode 2", 1, 2, SonarrEventType::Upgrade),
-        ];
+    mod group_sonarr_requests {
+        use super::*;
 
-        let result = group_sonarr_requests(&mut queue);
+        #[test]
+        fn episode_sorting() {
+            let mut queue = vec![
+                // group 1
+                create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Grab),
+                // group 2
+                create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Download),
+                create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Download),
+                // group 3
+                create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Upgrade),
+                create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Upgrade),
+                // group 4
+                create_episode_request("The Fakest Show", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
+                create_episode_request("The Fakest Show", "Fake Episode 2", 1, 2, SonarrEventType::Grab),
+                // group 5
+                create_episode_request("The Fakest Show", "Fake Episode 1", 1, 1, SonarrEventType::Download),
+                create_episode_request("The Fakest Show", "Fake Episode 2", 1, 2, SonarrEventType::Download),
+                // group 6
+                create_episode_request("The Fakest Show", "Fake Episode 1", 1, 1, SonarrEventType::Upgrade),
+                create_episode_request("The Fakest Show", "Fake Episode 2", 1, 2, SonarrEventType::Upgrade),
+            ];
 
-        assert_eq!(result.len(), 6);
-        assert_eq!(queue.len(), 0);
+            let result = group_sonarr_requests(&mut queue);
+
+            assert_eq!(result.len(), 6);
+            assert_eq!(queue.len(), 0);
+        }
     }
 
-    #[test]
-    fn test_convert_group_to_webhook() {
-        let requests = vec![
-            create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
-            create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Grab),
-        ];
+    mod convert_group_to_webhook {
+        use super::*;
+        #[test]
+        fn multiple_episodes() {
+            let requests = vec![
+                create_episode_request("Fake Series 1", "Fake Episode 4", 1, 4, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 3", 1, 3, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 6", 1, 6, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 2", 1, 2, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 5", 1, 5, SonarrEventType::Grab),
+            ];
 
-        let webhook = convert_group_to_webhook(&requests);
+            let webhook = convert_group_to_webhook(&requests);
 
-        assert_eq!(webhook.embeds.len(), 1);
-        assert_eq!(webhook.content, "Grabbed: Fake Series 1 Season 01");
-        assert_eq!(webhook.embeds[0].title, Some("Fake Series 1".to_string()));
-        assert_eq!(
-            webhook.embeds[0].description,
-            Some("01x01 - Fake Episode 1 [Fake Quality]\n01x02 - Fake Episode 2 [Fake Quality]".to_string())
-        );
-    }
+            assert_eq!(webhook.embeds.len(), 1);
+            assert_eq!(webhook.content, "Grabbed: Fake Series 1 Season 01");
+            assert_eq!(webhook.embeds[0].title, Some("Fake Series 1".to_string()));
+            assert_eq!(
+                webhook.embeds[0].description,
+                Some("01x01 - Fake Episode 1 [Fake Quality]\n01x02 - Fake Episode 2 [Fake Quality]\n01x03 - Fake Episode 3 [Fake Quality]\n01x04 - Fake Episode 4 [Fake Quality]\n01x05 - Fake Episode 5 [Fake Quality]\n01x06 - Fake Episode 6 [Fake Quality]".to_string())
+            );
+        }
 
-    #[test]
-    fn test_convert_group_to_webhook_single_episode() {
-        let requests = vec![create_episode_request("Fake Series", "Fake Episode 1", 1, 1, SonarrEventType::Grab)];
+        #[test]
+        fn single_episode() {
+            let requests = vec![create_episode_request("Fake Series", "Fake Episode 1", 1, 1, SonarrEventType::Grab)];
 
-        let webhook = convert_group_to_webhook(&requests);
+            let webhook = convert_group_to_webhook(&requests);
 
-        assert_eq!(webhook.embeds.len(), 1);
-        assert_eq!(webhook.content, "Grabbed: Fake Series - 01x01 - Fake Episode 1");
-        assert_eq!(webhook.embeds[0].title, Some("Fake Series".to_string()));
-        assert_eq!(webhook.embeds[0].description, Some("01x01 - Fake Episode 1 [Fake Quality]".to_string()));
-    }
+            assert_eq!(webhook.embeds.len(), 1);
+            assert_eq!(webhook.content, "Grabbed: Fake Series - 01x01 - Fake Episode 1");
+            assert_eq!(webhook.embeds[0].title, Some("Fake Series".to_string()));
+            assert_eq!(webhook.embeds[0].description, Some("01x01 - Fake Episode 1 [Fake Quality]".to_string()));
+        }
 
-    #[test]
-    fn test_convert_group_to_webhooks_colors() {
-        let grab_webhook = convert_group_to_webhook(&vec![create_episode_request(
-            "Fake Series",
-            "Fake Episode 1",
-            1,
-            1,
-            SonarrEventType::Grab,
-        )]);
-        let download_webhook = convert_group_to_webhook(&vec![create_episode_request(
-            "Fake Series",
-            "Fake Episode 1",
-            1,
-            1,
-            SonarrEventType::Download,
-        )]);
-        let upgrade_webhook = convert_group_to_webhook(&vec![create_episode_request(
-            "Fake Series",
-            "Fake Episode 1",
-            1,
-            1,
-            SonarrEventType::Upgrade,
-        )]);
+        #[test]
+        fn colors() {
+            let grab_webhook = convert_group_to_webhook(&vec![create_episode_request(
+                "Fake Series",
+                "Fake Episode 1",
+                1,
+                1,
+                SonarrEventType::Grab,
+            )]);
+            let download_webhook = convert_group_to_webhook(&vec![create_episode_request(
+                "Fake Series",
+                "Fake Episode 1",
+                1,
+                1,
+                SonarrEventType::Download,
+            )]);
+            let upgrade_webhook = convert_group_to_webhook(&vec![create_episode_request(
+                "Fake Series",
+                "Fake Episode 1",
+                1,
+                1,
+                SonarrEventType::Upgrade,
+            )]);
 
-        assert_eq!(grab_webhook.embeds[0].color, Some(0xFFC130));
-        assert_eq!(download_webhook.embeds[0].color, Some(0x29A44C));
-        assert_eq!(upgrade_webhook.embeds[0].color, Some(0x3E6800));
+            assert_eq!(grab_webhook.embeds[0].color, Some(0xFFC130));
+            assert_eq!(download_webhook.embeds[0].color, Some(0x29A44C));
+            assert_eq!(upgrade_webhook.embeds[0].color, Some(0x3E6800));
+        }
     }
 }

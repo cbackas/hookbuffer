@@ -73,14 +73,14 @@ mod tests {
 
         #[test]
         #[serial]
-        fn custom_url() {
+        fn custom() {
             std::env::set_var("HOOKBUFFER_DESTINATION_URL", "https://example.com");
             assert_eq!(get_destination_url(), "https://example.com/");
         }
 
         #[test]
         #[serial]
-        fn custom_url_no_trailing_slash() {
+        fn custom_no_trailing_slash() {
             std::env::set_var("HOOKBUFFER_DESTINATION_URL", "https://example.com");
             assert_eq!(get_destination_url(), "https://example.com/");
         }
