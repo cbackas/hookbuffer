@@ -354,7 +354,7 @@ mod tests {
         use super::*;
 
         #[test]
-        fn test_group_sonarr_requests() {
+        fn episode_sorting() {
             let mut queue = vec![
                 // group 1
                 create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
