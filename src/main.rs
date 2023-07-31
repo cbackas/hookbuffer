@@ -7,6 +7,7 @@ use warp::Filter;
 
 use crate::sonarr_handler::SonarrHandler;
 
+mod env;
 mod send;
 mod sonarr_handler;
 mod structs;
@@ -56,6 +57,7 @@ async fn main() {
             }
         });
 
-    println!("Server started at localhost:8000");
-    warp::serve(route).run(([0, 0, 0, 0], 8000)).await;
+    let server_port = env::get_server_port();
+    println!("Server started at localhost:{}", server_port);
+    warp::serve(route).run(([0, 0, 0, 0], server_port)).await;
 }
