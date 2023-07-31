@@ -32,7 +32,7 @@ impl SonarrHandler {
         }
     }
 
-    pub async fn handle(&self, request_path: String, body: Value) -> warp::reply::WithStatus<Json> {
+    pub async fn handle(&self, request_path: String, body: Value, query: HashMap<String, String>) -> warp::reply::WithStatus<Json> {
         // parse the request body into a SonarrRequestBody
         let mut sonarr_request: SonarrRequestBody = serde_json::from_value(body).unwrap();
 
@@ -93,12 +93,12 @@ impl SonarrHandler {
 
         // now that the request has been added to the queue and the timer_end Instant has been updated
         // we need to start the timer if it's not already running
-        self.start_timer(request_path).await;
+        self.start_timer(request_path, query.get("dest").cloned()).await;
 
         warp::reply::with_status(warp::reply::json(&"Request added to queue"), warp::http::StatusCode::OK)
     }
 
-    async fn start_timer(&self, request_path: String) {
+    async fn start_timer(&self, request_path: String, destination: Option<String>) {
         // get the needed information first and then release the lock
         let (timer_id, timer_end) = {
             let mut timers = self.timers.lock().await;
@@ -119,12 +119,18 @@ impl SonarrHandler {
 
         // now you're free to start the timer without holding the lock
         let timers = Arc::clone(&self.timers);
-        tokio::spawn(process_timer(timers, request_path, timer_id, timer_end));
+        tokio::spawn(process_timer(timers, request_path, destination, timer_id, timer_end));
     }
 }
 
 // this function is spawned when a url timer expires and it processes the queue of requests
-async fn process_timer(timers: Arc<Mutex<HashMap<String, TimerState>>>, request_path: String, timer_id: usize, timer_end: Instant) {
+async fn process_timer(
+    timers: Arc<Mutex<HashMap<String, TimerState>>>,
+    request_path: String,
+    destination: Option<String>,
+    timer_id: usize,
+    timer_end: Instant,
+) {
     let duration = timer_end - Instant::now();
     tokio::time::sleep(duration).await;
 
@@ -150,7 +156,11 @@ async fn process_timer(timers: Arc<Mutex<HashMap<String, TimerState>>>, request_
         }
     };
 
-    let destination_url = crate::env::get_destination_url();
+    // if destination provded in query then use that else use the env variable
+    let destination_url = match destination {
+        Some(url) => url,
+        None => crate::env::get_destination_url(),
+    };
 
     if let Some(mut queue) = timer_state_queue {
         let grouped_requests = group_sonarr_requests(&mut queue);
