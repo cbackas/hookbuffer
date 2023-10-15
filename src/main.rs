@@ -34,65 +34,54 @@ async fn main() {
                 let path = path.as_str().to_string();
 
                 // if the HOOKBUFFER_USER and HOOKBUFFER_PASS env vars are set, check for basic auth
-                let user = std::env::var("HOOKBUFFER_USER");
-                let pass = std::env::var("HOOKBUFFER_PASS");
-                if user.is_ok() && pass.is_ok() {
-                    let user_value = user.unwrap();
-                    let pass_value = pass.unwrap();
+                if let (Ok(user_value), Ok(pass_value)) = (std::env::var("HOOKBUFFER_USER"), std::env::var("HOOKBUFFER_PASS")) {
+                    let auth_header = match headers.get("Authorization") {
+                        Some(auth) => auth,
+                        None => return warp::reply::with_status(warp::reply::json(&"No Authorization header"), warp::http::StatusCode::UNAUTHORIZED),
+                    };
 
-                    if let Some(auth_header) = headers.get("Authorization") {
-                        match auth_header.to_str() {
-                            Ok(auth) => {
-                                let auth = auth.replace("Basic ", "");
-                                let auth = general_purpose::STANDARD.decode(auth);
-                                if auth.is_err() {
-                                    // bad request
-                                    return warp::reply::with_status(
-                                        warp::reply::json(&"Invalid Authorization header: couldn't decode base64"),
-                                        warp::http::StatusCode::BAD_REQUEST,
-                                    );
-                                }
-
-                                let auth = auth.unwrap();
-                                let auth = String::from_utf8(auth);
-                                if auth.is_err() {
-                                    // bad request
-                                    return warp::reply::with_status(
-                                        warp::reply::json(&"Invalid Authorization header: couldn't convert decoded utf8 to string"),
-                                        warp::http::StatusCode::BAD_REQUEST,
-                                    );
-                                }
-
-                                let auth = auth.unwrap();
-                                let auth = auth.split(':').collect::<Vec<&str>>();
-                                if auth.len() != 2 {
-                                    // bad request
-                                    return warp::reply::with_status(
-                                        warp::reply::json(&"Invalid Authorization header: couldn't split into 2 parts"),
-                                        warp::http::StatusCode::BAD_REQUEST,
-                                    );
-                                }
-
-                                if auth[0] != user_value || auth[1] != pass_value {
-                                    // unauthorized
-                                    return warp::reply::with_status(
-                                        warp::reply::json(&"Invalid Authorization header: incorrect username or password"),
-                                        warp::http::StatusCode::UNAUTHORIZED,
-                                    );
-                                }
-                            }
-
-                            Err(_) => {
-                                // bad request
-                                return warp::reply::with_status(
-                                    warp::reply::json(&"Invalid Authorization header"),
-                                    warp::http::StatusCode::BAD_REQUEST,
-                                );
-                            }
+                    let auth_str = match auth_header.to_str() {
+                        Ok(auth) => auth,
+                        Err(_) => {
+                            return warp::reply::with_status(warp::reply::json(&"Invalid Authorization header"), warp::http::StatusCode::BAD_REQUEST)
                         }
-                    } else {
-                        // unauthorized
-                        return warp::reply::with_status(warp::reply::json(&"No Authorization header"), warp::http::StatusCode::UNAUTHORIZED);
+                    };
+
+                    let auth = match auth_str.strip_prefix("Basic ") {
+                        Some(auth) => auth,
+                        None => {
+                            return warp::reply::with_status(warp::reply::json(&"Invalid Authorization header"), warp::http::StatusCode::BAD_REQUEST)
+                        }
+                    };
+
+                    let decoded = match general_purpose::STANDARD.decode(auth) {
+                        Ok(decoded) => decoded,
+                        Err(_) => {
+                            return warp::reply::with_status(
+                                warp::reply::json(&"Invalid Authorization header: couldn't decode base64"),
+                                warp::http::StatusCode::BAD_REQUEST,
+                            )
+                        }
+                    };
+
+                    let auth = match String::from_utf8(decoded) {
+                        Ok(auth) => auth,
+                        Err(_) => {
+                            return warp::reply::with_status(
+                                warp::reply::json(&"Invalid Authorization header: couldn't convert decoded utf8 to string"),
+                                warp::http::StatusCode::BAD_REQUEST,
+                            )
+                        }
+                    };
+
+                    let mut auth_parts = auth.splitn(2, ':');
+                    let (user, pass) = (auth_parts.next().unwrap(), auth_parts.next().unwrap_or(""));
+
+                    if user != user_value || pass != pass_value {
+                        return warp::reply::with_status(
+                            warp::reply::json(&"Invalid Authorization header: incorrect username or password"),
+                            warp::http::StatusCode::UNAUTHORIZED,
+                        );
                     }
                 }
 
