@@ -35,7 +35,7 @@ pub struct SonarrGroupKey(pub u64, pub SonarrEventType, pub u64);
 
 impl PartialOrd for SonarrGroupKey {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        (self.0, &self.1, self.2).partial_cmp(&(other.0, &other.1, other.2))
+        Some(self.cmp(other))
     }
 }
 

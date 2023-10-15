@@ -209,7 +209,7 @@ fn group_sonarr_requests(queue: &mut Vec<SonarrRequestBody>) -> HashMap<SonarrGr
             // add the request to the appropriate group
             grouped_requests
                 .entry(SonarrGroupKey(episode.series_id, event_type, episode.season_number))
-                .or_insert(Vec::new())
+                .or_default()
                 .push(sonarr_request.clone());
         }
     }
