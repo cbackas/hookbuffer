@@ -20,9 +20,11 @@ async fn main() {
     // SonarrHandler struct manages the state for the sonarr requests
     let sonarr_handler = Arc::new(SonarrHandler::new());
 
-    // Warp web server route
+    // health check route
+    let health_check = warp::path!("healthcheck").map(|| warp::reply::with_status("OK", warp::http::StatusCode::OK));
+
     // accept POSTs to all paths, filters for Sonarr requests and passes them to the SonarrHandler
-    let route = warp::post()
+    let catch_all = warp::post()
         .and(warp::header::headers_cloned())
         .and(warp::body::json::<Value>())
         .and(warp::path::full())
@@ -68,9 +70,11 @@ async fn main() {
             }
         });
 
+    let routes = health_check.or(catch_all);
+
     let server_port = env::get_server_port();
     println!("Server started at localhost:{}", server_port);
-    warp::serve(route).run(([0, 0, 0, 0], server_port)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], server_port)).await;
 }
 
 fn check_auth(user_value: String, pass_value: String, headers: HeaderMap) -> Option<WithStatus<Json>> {
