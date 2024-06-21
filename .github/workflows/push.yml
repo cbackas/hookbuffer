@@ -32,6 +32,10 @@ jobs:
     needs: release
     steps:
       - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --local-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   notify:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
