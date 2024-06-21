@@ -19,13 +19,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - name: Run linters
         uses: wearerequired/lint-action@master
         with:
@@ -35,34 +30,22 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - name: Run Tests
         run: |
           cargo test --verbose
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - name: Build
         run: cargo build --verbose
   build_docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      # just check that it builds, dont push it anywhere cuz whatever
+      - uses: actions/checkout@v4
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
