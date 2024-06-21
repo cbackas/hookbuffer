@@ -1,33 +1,14 @@
 use std::cmp::Ordering;
 
-use reqwest::StatusCode;
 use serde::Deserialize;
 
 use super::sonarr::SonarrEventType;
-
-#[derive(Deserialize, Debug, Clone)]
-pub struct HBQuery {
-    pub hb_output: HBOutput,
-    pub hb_dest: String,
-}
 
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum HBOutput {
     Matrix,
     Discord,
-}
-
-#[derive(Debug)]
-pub enum RequestError {
-    Http(reqwest::Error),
-    Other(StatusCode),
-}
-
-impl From<reqwest::Error> for RequestError {
-    fn from(err: reqwest::Error) -> RequestError {
-        RequestError::Http(err)
-    }
 }
 
 #[derive(Eq, PartialEq, Hash, Debug)]
