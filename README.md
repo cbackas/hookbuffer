@@ -13,7 +13,7 @@ Main benefits:
 
 #### Example:
 
-![Example](/assets/example_results.png)
+<img src="/assets/example_results.png" width="300">
 
 Instead of 60+ separate Discord messages (one per episode), Hookbuffer groups them by season and sends them to Discord.
 
