@@ -60,7 +60,7 @@ impl SonarrHandler {
         }
 
         for episode in &sonarr_request.episodes {
-            println!(
+            tracing::info!(
                 "[Recieved] {:?} Episode: {} - {:02}x{:02}",
                 sonarr_request.event_type.clone().unwrap(),
                 sonarr_request.series.title,
@@ -81,7 +81,7 @@ impl SonarrHandler {
                 timer_state.timer_end = timer_end;
             } else {
                 // if there isn't a TimerState, create one with this request in the queue and a new timer_end Instant
-                println!("[Timer] new timer started for {}", request_path);
+                tracing::info!("[Timer] new timer started for {}", request_path);
                 let timer_state = TimerState {
                     queue: vec![sonarr_request],
                     timer_end,
@@ -140,7 +140,7 @@ async fn process_timer(
             // only proceed if the timer ID hasn't changed
             // this is how we know the timer hasn't been reset since this function was spawned
             if timer_state.timer_id == timer_id {
-                println!(
+                tracing::info!(
                     "[Timer] timer expired for {} with {} requests in queue",
                     request_path,
                     timer_state.queue.len()
@@ -173,10 +173,10 @@ async fn process_timer(
 
             match send_post_request(destination_url.to_string(), request_path.to_string(), webhook).await {
                 Ok(_) => {
-                    println!("[Forwarded] {:?} sent to discord succesfully successfully", group_key);
+                    tracing::info!("[Forwarded] {:?} sent to discord succesfully successfully", group_key);
                 }
                 Err(e) => {
-                    eprintln!("Failed to send POST request: {:?}", e);
+                    tracing::error!("Failed to send POST request: {:?}", e);
                 }
             }
 

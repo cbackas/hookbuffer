@@ -1,17 +1,17 @@
 pub fn get_server_port() -> u16 {
     match std::env::var("HOOKBUFFER_PORT") {
         Ok(port) => {
-            println!("[INFO] Found HOOKBUFFER_PORT: {}", port);
+            tracing::debug!("Found HOOKBUFFER_PORT: {}", port);
             match port.parse::<u16>() {
                 Ok(port) => port,
                 Err(_) => {
-                    println!("[ERROR] Custom HOOKBUFFER_PORT is not a valid port number, using default port 8000");
+                    tracing::warn!("Custom HOOKBUFFER_PORT is not a valid port number, using default port 8000");
                     8000
                 }
             }
         }
         Err(_) => {
-            println!("[INFO] No HOOKBUFFER_PORT found, using default port 8000");
+            tracing::debug!("No HOOKBUFFER_PORT found, using default port 8000");
             8000
         }
     }
@@ -23,7 +23,7 @@ pub fn get_destination_url() -> String {
             if !url.ends_with('/') {
                 url.push('/');
             }
-            println!("[INFO] Found custom HOOKBUFFER_DESTINATION_URL: {}", url);
+            tracing::info!("Found custom HOOKBUFFER_DESTINATION_URL: {}", url);
             url
         }
         Err(_) => "https://discord.com/".to_string(),

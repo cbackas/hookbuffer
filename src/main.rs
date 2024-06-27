@@ -3,6 +3,10 @@ use std::sync::Arc;
 
 use base64::{engine::general_purpose, Engine as _};
 use serde_json::Value;
+use tracing::level_filters;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use warp::filters::trace;
 use warp::http::HeaderMap;
 use warp::path::FullPath;
 use warp::reply::{Json, WithStatus};
@@ -17,6 +21,14 @@ mod structs;
 
 #[tokio::main]
 async fn main() {
+    let env_filter = tracing_subscriber::EnvFilter::builder()
+        .with_default_directive(level_filters::LevelFilter::INFO.into())
+        .from_env_lossy();
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     // SonarrHandler struct manages the state for the sonarr requests
     let sonarr_handler = Arc::new(SonarrHandler::new());
 
@@ -59,7 +71,7 @@ async fn main() {
 
                         _ => {
                             // not sonarr, bad request
-                            println!("Received unsupported User-Agent");
+                            tracing::warn!("Received unsupported User-Agent");
                             warp::reply::with_status(warp::reply::json(&"Received unsupported User-Agent"), warp::http::StatusCode::BAD_REQUEST)
                         }
                     }
@@ -73,7 +85,7 @@ async fn main() {
     let routes = health_check.or(catch_all);
 
     let server_port = env::get_server_port();
-    println!("Server started at localhost:{}", server_port);
+    tracing::info!("Server started at localhost:{}", server_port);
     warp::serve(routes).run(([0, 0, 0, 0], server_port)).await;
 }
 

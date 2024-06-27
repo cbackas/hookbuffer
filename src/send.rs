@@ -17,7 +17,7 @@ pub async fn send_post_request(base_url: String, path: String, payload: DiscordW
     loop {
         let response = client.post(&full_url).json(&payload).send().await;
         if let Err(e) = response {
-            println!("Failed to send POST request to {}. Error: {:?}, payload: {:?}", full_url, e, payload);
+            tracing::error!("Failed to send POST request to {}. Error: {:?}, payload: {:?}", full_url, e, payload);
             let status: StatusCode = match e.status() {
                 Some(status) => status,
                 None => StatusCode::INTERNAL_SERVER_ERROR,
@@ -29,7 +29,7 @@ pub async fn send_post_request(base_url: String, path: String, payload: DiscordW
         if response.status().is_success() {
             return Ok(());
         } else if response.status() == StatusCode::TOO_MANY_REQUESTS {
-            println!(
+            tracing::warn!(
                 "Rate limited. Retrying in {} seconds. Failed to send POST request to {}. Status: {}, payload: {:?}",
                 backoff.as_secs(),
                 full_url,
@@ -45,7 +45,7 @@ pub async fn send_post_request(base_url: String, path: String, payload: DiscordW
                 backoff *= 2;
             }
         } else {
-            println!(
+            tracing::error!(
                 "Failed to send POST request to {}. Status: {}, payload: {:?}",
                 full_url,
                 response.status(),

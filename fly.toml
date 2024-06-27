@@ -18,6 +18,9 @@ primary_region = "ord"
   min_machines_running = 0
   processes = ["app"]
 
+[env]
+  RUST_LOG = "hookbuffer=debug"
+
 [checks]
   [checks.health]
     grace_period = "60s"
