@@ -252,12 +252,21 @@ fn convert_group_to_webhook(sonarr_data: &[SonarrRequestBody]) -> DiscordWebhook
                 .iter()
                 .map(move |episode| (episode.season_number, episode.episode_number, episode.title.clone(), quality.clone()))
         })
-        .collect();
+        .fold(Vec::new(), |mut acc: Vec<(u64, u64, String, String, u64)>, x| {
+            match acc.iter().position(|(s, e, _, _, _)| *s == x.0 && *e == x.1).take() {
+                Some(i) => acc[i].4 += 1,
+                None => acc.push((x.0, x.1, x.2, x.3, 1)),
+            };
+            acc
+        });
     episodes_with_quality.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)).then(a.2.cmp(&b.2)).then(a.3.cmp(&b.3)));
 
     let description = episodes_with_quality
         .into_iter()
-        .map(|(season_number, episode_number, title, quality)| format!("{:02}x{:02} - {} [{}]", season_number, episode_number, title, quality))
+        .map(|(season_number, episode_number, title, quality, count)| match count {
+            1 => format!("{:02}x{:02} - {} [{}]", season_number, episode_number, title, quality),
+            _ => format!("{:02}x{:02} - {} [{}] ({}x)", season_number, episode_number, title, quality, count),
+        })
         .collect::<Vec<_>>()
         .join("\n");
 
@@ -329,8 +338,8 @@ mod tests {
             },
             event_type: Some(event_type.clone()),
             episodes: vec![SonarrEpisode {
-                episode_number: episode_number,
-                season_number: season_number,
+                episode_number,
+                season_number,
                 title: episode_title.to_string(),
                 series_id,
                 air_date: None,
@@ -427,6 +436,32 @@ mod tests {
             assert_eq!(webhook.content, "Grabbed: Fake Series - 01x01 - Fake Episode 1");
             assert_eq!(webhook.embeds[0].title, Some("Fake Series".to_string()));
             assert_eq!(webhook.embeds[0].description, Some("01x01 - Fake Episode 1 [Fake Quality]".to_string()));
+        }
+
+        #[test]
+        fn repeated_episodes() {
+            let requests = vec![
+                create_episode_request("Fake Series 1", "Fake Episode 4", 1, 4, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 4", 1, 4, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 4", 1, 4, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 1", 1, 1, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 6", 1, 6, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 6", 1, 6, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 6", 1, 6, SonarrEventType::Grab),
+                create_episode_request("Fake Series 1", "Fake Episode 6", 1, 6, SonarrEventType::Grab),
+            ];
+
+            let webhook = convert_group_to_webhook(&requests);
+
+            assert_eq!(webhook.embeds.len(), 1);
+            assert_eq!(webhook.content, "Grabbed: Fake Series 1 Season 01");
+            assert_eq!(webhook.embeds[0].title, Some("Fake Series 1".to_string()));
+            assert_eq!(
+                webhook.embeds[0].description,
+                Some("01x01 - Fake Episode 1 [Fake Quality] (3x)\n01x04 - Fake Episode 4 [Fake Quality] (3x)\n01x06 - Fake Episode 6 [Fake Quality] (4x)".to_string())
+            );
         }
 
         #[test]
