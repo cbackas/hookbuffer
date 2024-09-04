@@ -11,7 +11,7 @@ pub struct SonarrCustomFormat {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SonarrCustomFormatInfo {
     #[serde(rename = "customFormatScore")]
-    pub custom_format_score: Option<u64>,
+    pub custom_format_score: Option<i64>,
     #[serde(rename = "customFormats")]
     pub custom_formats: Option<Vec<SonarrCustomFormat>>,
 }
@@ -56,7 +56,7 @@ pub struct SonarrEpisode {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SonarrRelease {
     #[serde(rename = "customFormatScore")]
-    pub custom_format_score: Option<u64>,
+    pub custom_format_score: Option<i64>,
     #[serde(rename = "customFormats")]
     pub custom_formats: Option<Vec<String>>,
     pub indexer: Option<String>,
