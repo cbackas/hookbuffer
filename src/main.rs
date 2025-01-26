@@ -6,7 +6,6 @@ use serde_json::Value;
 use tracing::level_filters;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use warp::filters::trace;
 use warp::http::HeaderMap;
 use warp::path::FullPath;
 use warp::reply::{Json, WithStatus};
