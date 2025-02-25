@@ -1,13 +1,20 @@
-use std::time::Duration;
-
 use reqwest::{Client, StatusCode};
-use tokio::time::sleep;
+use std::time::Duration;
+use worker::{console_error, console_log, console_warn, Delay};
 
 use crate::structs::discord::DiscordWebhook;
 
-pub async fn send_post_request(base_url: String, path: String, payload: DiscordWebhook) -> Result<(), StatusCode> {
-    let base_url = base_url.strip_suffix('/').unwrap_or(&base_url);
-    let full_url = format!("{}{}", base_url, path);
+pub async fn send_post_request(
+    url: String,
+    payload: impl Into<DiscordWebhook>,
+) -> Result<StatusCode, StatusCode> {
+    let payload = payload.into();
+
+    console_log!(
+        "Sending POST request to {} with payload: {:?}",
+        url,
+        payload
+    );
 
     let client = Client::new();
 
@@ -15,9 +22,14 @@ pub async fn send_post_request(base_url: String, path: String, payload: DiscordW
     let backoff_limit = 128;
 
     loop {
-        let response = client.post(&full_url).json(&payload).send().await;
+        let response = client.post(&url).json(&payload).send().await;
         if let Err(e) = response {
-            tracing::error!("Failed to send POST request to {}. Error: {:?}, payload: {:?}", full_url, e, payload);
+            console_error!(
+                "Failed to send POST request to {}. Error: {:?}, payload: {:?}",
+                url,
+                e,
+                payload
+            );
             let status: StatusCode = match e.status() {
                 Some(status) => status,
                 None => StatusCode::INTERNAL_SERVER_ERROR,
@@ -27,17 +39,17 @@ pub async fn send_post_request(base_url: String, path: String, payload: DiscordW
         let response = response.unwrap();
 
         if response.status().is_success() {
-            return Ok(());
+            return Ok(StatusCode::OK);
         } else if response.status() == StatusCode::TOO_MANY_REQUESTS {
-            tracing::warn!(
+            console_warn!(
                 "Rate limited. Retrying in {} seconds. Failed to send POST request to {}. Status: {}, payload: {:?}",
                 backoff.as_secs(),
-                full_url,
+                url,
                 response.status(),
                 payload
             );
 
-            sleep(backoff).await;
+            Delay::from(backoff).await;
 
             if (backoff * 2).as_secs() > backoff_limit {
                 return Err(StatusCode::TOO_MANY_REQUESTS);
@@ -45,9 +57,9 @@ pub async fn send_post_request(base_url: String, path: String, payload: DiscordW
                 backoff *= 2;
             }
         } else {
-            tracing::error!(
+            console_error!(
                 "Failed to send POST request to {}. Status: {}, payload: {:?}",
-                full_url,
+                url,
                 response.status(),
                 payload
             );
