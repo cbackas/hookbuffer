@@ -10,9 +10,5 @@ command = "cargo install -q worker-build && worker-build --release"
 
 [durable_objects]
 bindings = [
-  { name = "HOOKBUFFER", class_name = "Queue" } # the `class_name` uses the Rust struct identifier name
+  { name = "HOOKBUFFER", class_name = "ChannelQueue" }
 ]
-
-[[migrations]]
-tag = "v1"
-new_classes = ["Queue"]

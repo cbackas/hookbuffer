@@ -17,8 +17,13 @@ impl From<&Vec<SonarrRequestBody>> for DiscordWebhook {
 
         let content = match event_type {
             SonarrEventType::Grab => "Grabbed",
-            SonarrEventType::Download => "Imported",
-            SonarrEventType::Upgrade => "Upgraded",
+            SonarrEventType::Download => {
+                if sonarr_data[0].is_upgrade.unwrap_or(false) {
+                    "Upgraded"
+                } else {
+                    "Imported"
+                }
+            }
             SonarrEventType::Rename => "Renamed",
             _ => "Unknown",
         };
