@@ -1,16 +1,28 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use twilight_model::channel::message::Embed;
 
 use super::sonarr::{SonarrEventType, SonarrRequestBody};
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DiscordWebhook {
+    pub url: String,
+    pub body: DiscordWebhookBody,
+}
+
+impl DiscordWebhook {
+    pub fn new(url: String, body: DiscordWebhookBody) -> Self {
+        DiscordWebhook { url, body }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DiscordWebhookBody {
     pub content: String,
     pub embeds: Vec<Embed>,
 }
 
-impl From<&Vec<SonarrRequestBody>> for DiscordWebhook {
-    fn from(sonarr_data: &Vec<SonarrRequestBody>) -> Self {
+impl From<Vec<SonarrRequestBody>> for DiscordWebhookBody {
+    fn from(sonarr_data: Vec<SonarrRequestBody>) -> Self {
         let event_type = sonarr_data[0].event_type.as_ref().unwrap();
         let series_title = &sonarr_data[0].series.title;
         let season_number = sonarr_data[0].episodes[0].season_number;
@@ -119,7 +131,7 @@ impl From<&Vec<SonarrRequestBody>> for DiscordWebhook {
             video: None,
         };
 
-        DiscordWebhook {
+        DiscordWebhookBody {
             content,
             embeds: vec![embed],
         }

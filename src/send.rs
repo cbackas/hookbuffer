@@ -4,17 +4,10 @@ use worker::{console_error, console_log, console_warn, Delay};
 
 use crate::structs::discord::DiscordWebhook;
 
-pub async fn send_post_request(
-    url: String,
-    payload: impl Into<DiscordWebhook>,
-) -> Result<StatusCode, StatusCode> {
-    let payload = payload.into();
+pub async fn send_post_request(webhook: &DiscordWebhook) -> Result<StatusCode, StatusCode> {
+    let DiscordWebhook { url, body } = webhook;
 
-    console_log!(
-        "Sending POST request to {} with payload: {:?}",
-        url,
-        payload
-    );
+    console_log!("Sending POST request to {} with payload: {:?}", url, body);
 
     let client = Client::new();
 
@@ -22,13 +15,13 @@ pub async fn send_post_request(
     let backoff_limit = 128;
 
     loop {
-        let response = client.post(&url).json(&payload).send().await;
+        let response = client.post(url).json(body).send().await;
         if let Err(e) = response {
             console_error!(
                 "Failed to send POST request to {}. Error: {:?}, payload: {:?}",
                 url,
                 e,
-                payload
+                body
             );
             let status: StatusCode = match e.status() {
                 Some(status) => status,
@@ -46,7 +39,7 @@ pub async fn send_post_request(
                 backoff.as_secs(),
                 url,
                 response.status(),
-                payload
+                body
             );
 
             Delay::from(backoff).await;
@@ -61,7 +54,7 @@ pub async fn send_post_request(
                 "Failed to send POST request to {}. Status: {}, payload: {:?}",
                 url,
                 response.status(),
-                payload
+                body
             );
             return Err(response.status());
         }

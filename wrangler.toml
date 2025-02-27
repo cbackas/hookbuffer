@@ -12,3 +12,13 @@ command = "cargo install -q worker-build && worker-build --release"
 bindings = [
   { name = "HOOKBUFFER", class_name = "ChannelQueue" }
 ]
+
+[[queues.consumers]]
+queue = "hookbuffer-outbound-messages"
+max_batch_size = 30
+max_batch_timeout = 5
+
+[[queues.producers]]
+queue = "hookbuffer-outbound-messages"
+binding = "outbound_messages"
+
