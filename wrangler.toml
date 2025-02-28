@@ -1,5 +1,5 @@
 name = "hookbuffer"
-main = "build/worker/shim.mjs"
+main = "cf-worker/build/worker/shim.mjs"
 compatibility_date = "2025-02-25"
 
 [observability]
@@ -7,6 +7,7 @@ enabled = true
 
 [build]
 command = "cargo install -q worker-build && worker-build --release"
+cwd = "cf-worker"
 
 [durable_objects]
 bindings = [

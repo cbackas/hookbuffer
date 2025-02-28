@@ -1,27 +1,13 @@
-[package]
-name = "hookbuffer"
-version = "0.1.0"
-edition = "2021"
-authors = [ "Zac <git@zac.gg>" ]
+[workspace]
+members = [
+"cf-worker",
+# "standalone",
+# "shared-lib"
+]
+resolver = "2"
 
-[package.metadata.release]
-release = false
-
-# https://github.com/rustwasm/wasm-pack/issues/1247
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
-
-[lib]
-crate-type = ["cdylib"]
-
-[dependencies]
-worker = { version="0.5.0", features=['http', 'queue'] }
-worker-macros = { version="0.5.0", features=['http'] }
-axum  = { version = "0.7", default-features = false }
-console_error_panic_hook = { version = "0.1.1" }
-serde = "1.0.218"
-tower-service = "0.3.3"
+[workspace.dependencies]
+# shared-lib = { path = "./shared-lib" }
 serde_json = "1.0.139"
-twilight-model = "0.16.0"
+serde = { version = "1.0.217", features = ["derive"] }
 reqwest = { version = "0.12.12", features = ["json"] }
-serde-wasm-bindgen = "0.6.5"
