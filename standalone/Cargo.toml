@@ -1,0 +1,18 @@
+[package]
+name = "hookbuffer-standalone"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared-lib = {workspace = true, features=["standalone"]}
+reqwest = {workspace = true}
+serde = {workspace = true}
+serde_json = {workspace = true}
+base64 = "0.22.1"
+futures = "0.3.31"
+serial_test = "3.2.0"
+twilight-model = "0.16.0"
+warp = "0.3.7"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing = {workspace = true}
+tokio = {workspace = true}

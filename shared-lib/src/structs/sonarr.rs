@@ -104,7 +104,7 @@ pub enum SonarrEventType {
     ManualInteractionRequired,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SonarrRequestBody {
     #[serde(rename = "applicationUrl")]
     pub application_url: Option<String>,

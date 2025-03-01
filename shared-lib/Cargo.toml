@@ -1,0 +1,18 @@
+[package]
+name = "shared-lib"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+worker = ["dep:worker"]
+standalone = ["dep:tracing"]
+
+[dependencies]
+reqwest = {workspace = true}
+serde = {workspace = true}
+serde_json = {workspace = true}
+worker = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+tokio = { version = "1.43.0", features = ["time"] }
+twilight-model = "0.16.0"

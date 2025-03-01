@@ -21,8 +21,8 @@ pub struct DiscordWebhookBody {
     pub embeds: Vec<Embed>,
 }
 
-impl From<Vec<SonarrRequestBody>> for DiscordWebhookBody {
-    fn from(sonarr_data: Vec<SonarrRequestBody>) -> Self {
+impl From<&Vec<SonarrRequestBody>> for DiscordWebhookBody {
+    fn from(sonarr_data: &Vec<SonarrRequestBody>) -> Self {
         let event_type = sonarr_data[0].event_type.as_ref().unwrap();
         let series_title = &sonarr_data[0].series.title;
         let season_number = sonarr_data[0].episodes[0].season_number;
@@ -135,6 +135,12 @@ impl From<Vec<SonarrRequestBody>> for DiscordWebhookBody {
             content,
             embeds: vec![embed],
         }
+    }
+}
+
+impl From<Vec<SonarrRequestBody>> for DiscordWebhookBody {
+    fn from(sonarr_data: Vec<SonarrRequestBody>) -> Self {
+        DiscordWebhookBody::from(&sonarr_data)
     }
 }
 

@@ -3,16 +3,12 @@ use std::{
     time::Duration,
 };
 
-use crate::send::send_post_request;
-use structs::{
+use shared_lib::structs::{
     discord::{DiscordWebhook, DiscordWebhookBody},
     sonarr::{SonarrGroupKey, SonarrRequestBody},
 };
 use wasm_bindgen::JsValue;
 use worker::*;
-
-mod send;
-mod structs;
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
@@ -141,8 +137,9 @@ pub async fn consume_webhook_queue(
 ) -> Result<()> {
     let messages: Vec<Message<DiscordWebhook>> = message_batch.messages()?;
 
-    for message in &messages {
-        match send_post_request(message.body()).await {
+    for message in messages {
+        let webhook = message.body().clone();
+        match shared_lib::send::send_post_request(webhook.url, webhook.body).await {
             Ok(_) => message.ack(),
             Err(_) => message.retry(),
         };
