@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use crate::structs::discord::DiscordWebhookBody;
 
-// pub async fn send_post_request(webhook: &DiscordWebhook) -> Result<StatusCode, StatusCode> {
 pub async fn send_post_request(
     url: String,
     body: DiscordWebhookBody,
