@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use reqwest::Client;
 use std::time::Duration;
 
 use crate::structs::discord::DiscordWebhookBody;
@@ -15,8 +16,10 @@ pub async fn send_post_request(
     let mut backoff = Duration::from_secs(4); // start with a 4 second delay
     let backoff_limit = 128;
 
+    let client = Client::new();
+
     loop {
-        match ureq::post(url.clone()).send_json(&body) {
+        match client.post(url.clone()).json(&body).send().await {
             Err(e) => {
                 #[cfg(feature = "worker")]
                 worker::console_error!(
