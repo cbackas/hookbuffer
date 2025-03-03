@@ -12,15 +12,20 @@ use worker::*;
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+    let headers = req.headers().into();
+    // Basic auth check
+    if let Ok(pass) = env.secret("SECRET_KEY") {
+        if let Err(response) =
+            shared_lib::auth::check_auth("admin".to_string(), pass.to_string(), &headers)
+        {
+            return Response::try_from(response);
+        }
+    }
+
     match req.headers().get("User-Agent") {
         Ok(Some(user_agent)) if user_agent.starts_with("Sonarr/") => {}
         _ => return Response::error("Invalid User-Agent", 400),
     };
-
-    match req.headers().get("X-Custom-PSK") {
-        Ok(Some(psk)) if psk == env.secret("SECRET_KEY")?.to_string() => {}
-        _ => return Response::error("Invalid X-Custom-PSK", 401),
-    }
 
     Router::new()
         .on_async(
