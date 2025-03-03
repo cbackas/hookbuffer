@@ -9,8 +9,7 @@ serde = {workspace = true}
 serde_json = {workspace = true}
 tracing = {workspace = true}
 tokio = {workspace = true}
-base64 = "0.22.1"
 futures = "0.3.31"
 serial_test = "3.2.0"
-warp = "0.3.7"
+axum = { workspace = true}
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }

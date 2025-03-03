@@ -1,8 +1,8 @@
 [workspace]
 members = [
-"cf-worker",
-"standalone",
-"shared-lib"
+  "cf-worker",
+  "standalone",
+  "shared-lib"
 ]
 resolver = "2"
 
@@ -14,4 +14,5 @@ ureq = {version="3.0.8", default-features=false, features=["gzip", "json"]}
 tracing = "0.1.41"
 tokio = { version = "1.43.0", features = ["full"] }
 worker = { version="0.5.0", features=['http', 'queue'] }
+axum = "0.8.1"
 

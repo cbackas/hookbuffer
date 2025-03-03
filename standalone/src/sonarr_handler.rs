@@ -1,3 +1,7 @@
+use axum::body::Body;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
 use serde_json::Value;
 use shared_lib::structs::discord::DiscordWebhookBody;
 use shared_lib::structs::sonarr::{SonarrEventType, SonarrGroupKey, SonarrRequestBody};
@@ -5,8 +9,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{sleep, Duration, Instant};
-use warp::reply::Json;
 
+#[derive(Default)]
 pub struct SonarrHandler {
     // this will hold the state for each ongoing timer and queue of requests
     // the HashMap key will be the URL of the request, and the value will be the state for that URL
@@ -23,18 +27,12 @@ struct TimerState {
 }
 
 impl SonarrHandler {
-    pub fn new() -> Self {
-        Self {
-            timers: Arc::new(Mutex::new(HashMap::new())),
-        }
-    }
-
     pub async fn handle(
         &self,
         request_path: String,
         body: Value,
         query: HashMap<String, String>,
-    ) -> warp::reply::WithStatus<Json> {
+    ) -> Response<Body> {
         // parse the request body into a SonarrRequestBody
         let mut sonarr_request: SonarrRequestBody = serde_json::from_value(body).unwrap();
 
@@ -58,10 +56,11 @@ impl SonarrHandler {
             || event_type == SonarrEventType::Upgrade)
         {
             // if the event type is not Download or Upgrade, return a 400
-            return warp::reply::with_status(
-                warp::reply::json(&"Unsupported event type, must be Grab or Download"),
-                warp::http::StatusCode::BAD_REQUEST,
-            );
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(&"Unsupported event type, must be Grab or Download"),
+            )
+                .into_response();
         }
 
         for episode in &sonarr_request.episodes {
@@ -101,10 +100,7 @@ impl SonarrHandler {
         self.start_timer(request_path, query.get("dest").cloned())
             .await;
 
-        warp::reply::with_status(
-            warp::reply::json(&"Request added to queue"),
-            warp::http::StatusCode::OK,
-        )
+        (StatusCode::OK, Json(&"Request added to queue")).into_response()
     }
 
     async fn start_timer(&self, request_path: String, destination: Option<String>) {
