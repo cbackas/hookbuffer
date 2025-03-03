@@ -16,7 +16,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 shared-lib = {workspace = true, features=["worker"]}
-reqwest = {workspace = true}
 serde = {workspace = true}
 serde_json = {workspace = true}
 worker = {workspace = true}

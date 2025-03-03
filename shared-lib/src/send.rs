@@ -1,4 +1,4 @@
-use reqwest::{Client, StatusCode};
+use axum::http::StatusCode;
 use std::time::Duration;
 
 use crate::structs::discord::DiscordWebhookBody;
@@ -12,13 +12,11 @@ pub async fn send_post_request(
     #[cfg(feature = "standalone")]
     tracing::info!("Sending POST request to {} with payload: {:?}", url, body);
 
-    let client = Client::new();
-
     let mut backoff = Duration::from_secs(4); // start with a 4 second delay
     let backoff_limit = 128;
 
     loop {
-        match client.post(url.clone()).json(&body).send().await {
+        match ureq::post(url.clone()).send_json(&body) {
             Err(e) => {
                 #[cfg(feature = "worker")]
                 worker::console_error!(
@@ -34,11 +32,8 @@ pub async fn send_post_request(
                     e,
                     body
                 );
-                let status: StatusCode = match e.status() {
-                    Some(status) => status,
-                    None => StatusCode::INTERNAL_SERVER_ERROR,
-                };
-                return Err(status);
+
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
             }
             Ok(response) if response.status().is_success() => {
                 return Ok(StatusCode::OK);

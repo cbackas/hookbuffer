@@ -9,10 +9,11 @@ worker = ["dep:worker"]
 standalone = ["dep:tracing"]
 
 [dependencies]
-reqwest = {workspace = true}
+ureq = {workspace=true}
 serde = {workspace = true}
 serde_json = {workspace = true}
 worker = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
-tokio = { version = "1.43.0", features = ["time"] }
+axum = {version="0.8.1", default-features=false, features=["json"]}
+tokio = { version = "1.43.0", default-features = false, features = ["time"] }
 twilight-model = "0.16.0"
