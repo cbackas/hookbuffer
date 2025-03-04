@@ -33,7 +33,7 @@ async fn main() {
     // health check route
     let app = Router::new()
         .route("/healthcheck", get(health_check))
-        .route("/*path", post(handle_post))
+        .route("/{*path}", post(handle_post))
         .with_state(SharedAppState::default());
 
     let server_port = env::get_server_port();
