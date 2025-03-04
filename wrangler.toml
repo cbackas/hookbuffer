@@ -1,0 +1,25 @@
+name = "hookbuffer"
+main = "cf-worker/build/worker/shim.mjs"
+compatibility_date = "2025-02-25"
+
+[observability]
+enabled = true
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"
+cwd = "cf-worker"
+
+[durable_objects]
+bindings = [
+  { name = "HOOKBUFFER", class_name = "ChannelQueue" }
+]
+
+[[queues.consumers]]
+queue = "hookbuffer-outbound-messages"
+max_batch_size = 30
+max_batch_timeout = 5
+
+[[queues.producers]]
+queue = "hookbuffer-outbound-messages"
+binding = "outbound_messages"
+
