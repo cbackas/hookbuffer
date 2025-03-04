@@ -3,13 +3,18 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, Query, State},
-    http::{HeaderMap, StatusCode},
-    response::IntoResponse,
+    http::{Request, Uri},
+    middleware::Next,
+    response::Response,
     routing::{get, post},
-    Json, Router,
+    Router,
 };
 use serde_json::Value;
-use tracing::level_filters;
+use tower_http::{
+    compression::{predicate::NotForContentType, CompressionLayer, DefaultPredicate, Predicate},
+    trace::TraceLayer,
+};
+use tracing::{level_filters, Span};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
@@ -19,6 +24,7 @@ mod env;
 mod sonarr_handler;
 
 type SharedAppState = Arc<SonarrHandler>;
+struct RequestUri(Uri);
 
 #[tokio::main]
 async fn main() {
@@ -30,8 +36,45 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let predicate = DefaultPredicate::new().and(NotForContentType::new("application/json"));
+    let compression_layer = CompressionLayer::new().gzip(true).compress_when(predicate);
+
     // health check route
     let app = Router::new()
+        .layer(axum::middleware::from_fn(
+            |request: Request<_>, next: Next<_>| async move {
+                let uri = request.uri().clone();
+
+                let mut response = next.run(request).await;
+
+                response.extensions_mut().insert(RequestUri(uri));
+
+                response
+            },
+        ))
+        .layer(TraceLayer::new_for_http().on_response(
+            |response: &Response, latency: std::time::Duration, _span: &Span| {
+                let url = match response.extensions().get::<RequestUri>().map(|r| &r.0) {
+                    Some(uri) => uri.to_string(),
+                    None => "unknown".to_string(),
+                };
+                let status = response.status();
+                let latency = {
+                    let milliseconds = latency.as_secs_f64() * 1000.0
+                        + latency.subsec_nanos() as f64 / 1_000_000.0;
+                    // Format the milliseconds to a string with 2 decimal places and add 'ms' postfix
+                    format!("{:.2}ms", milliseconds)
+                };
+
+                if url == "/healthcheck" {
+                    tracing::trace!("{} {} {}", url, status, latency);
+                    return;
+                }
+
+                tracing::debug!("{} {} {}", url, status, latency);
+            },
+        ))
+        .layer(compression_layer)
         .route("/healthcheck", get(health_check))
         .route("/{*path}", post(handle_post))
         .with_state(SharedAppState::default());
