@@ -1,5 +1,4 @@
 # Hookbuffer
-
 Essentially a buffering webhook proxy server.
 
 Takes in webhooks that originate from Sonarr and are intended for Discord. It catches grab, import, and upgrade event notifications from Sonarr, uses some timers to add a delay in which it can catch and group together many notifications by show and season, then pass those groupings along to the intended Discord webhook URL. Sonarr should probably have this built in.... but until then I made this.
@@ -20,33 +19,31 @@ Main benefits:
 Instead of 60+ separate Discord messages (one per episode), Hookbuffer groups them by season and sends them to Discord.
 
 ### Deploying App
-
 #### How to host:
 - You can build and run the binary for `hookbuffer-standalone` wherever you want
 - You can run the Docker container for `hookbuffer-standalone`
 - You can use the cloudflare workers version, `hookbuffer-cf-worker`
 
 #### Docker:
-
 Docker image can be found on Github Container Registry: https://github.com/cbackas/hookbuffer/pkgs/container/hookbuffer
 
 `docker run --name hookbuffer -p 8000:8000 ghcr.io/cbackas/hookbuffer:latest`
 
 #### Cloudflare Workers:
-
 Deploy worker: `npx wrangler deploy`
+
 When running this you might see a warning regarding durable objects and not having migrations. Add this block to your wrangler.toml file to provide an initial migration for the durable object:
 ```toml
 [[migrations]]
 tag = "v1"
 new_classes = [ "ChannelQueue" ]
-
 ```
 
 ### Authentication:
 
 #### Docker:
 If you deploy this container on the same local network as your Sonarr instance, you don't really need authentication. But if you deploy it to tyhe cloud, you should enable hookbuffer's auth feature. You can add authentication checks by setting the `HOOKBUFFER_USER` and `HOOKBUFFER_PASS` environment variables, ex:
+
 `docker run --name hookbuffer -p 8000:8000 -e HOOKBUFFER_USER=user -e HOOKBUFFER_PASS=pass ghcr.io/cbackas/hookbuffer:latest`
 
 #### Cloudflare Workers:
@@ -72,11 +69,12 @@ Next we need to configure Sonarr to send notifications through Hookbuffer.
 ![Sonarr Config Example](/assets/example_sonarr_config.png)
 
 ### Build it yourself:
-
 #### Standalone:
 Build Executable: `cargo build -p hookbuffer-standalone --release`
+
 Build and run: `cargo run -p hookbuffer-standalone`
 
 #### Worker:
 Build WASM Worker: `npx wrangler deploy --dry-run`
+
 Build and run: `npx wrangler dev`
