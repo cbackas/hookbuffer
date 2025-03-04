@@ -3,17 +3,19 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, Query, State},
-    http::{Request, Uri},
+    http::{HeaderMap, Request, StatusCode, Uri},
     middleware::Next,
-    response::Response,
+    response::{IntoResponse, Response},
     routing::{get, post},
-    Router,
+    Json, Router,
 };
 use serde_json::Value;
-use tower_http::{
-    compression::{predicate::NotForContentType, CompressionLayer, DefaultPredicate, Predicate},
-    trace::TraceLayer,
+use tower_http::compression::{
+    predicate::{DefaultPredicate, NotForContentType, Predicate},
+    CompressionLayer,
 };
+use tower_http::trace::TraceLayer;
+
 use tracing::{level_filters, Span};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -24,6 +26,8 @@ mod env;
 mod sonarr_handler;
 
 type SharedAppState = Arc<SonarrHandler>;
+
+#[derive(Debug, Clone)]
 struct RequestUri(Uri);
 
 #[tokio::main]
@@ -42,7 +46,7 @@ async fn main() {
     // health check route
     let app = Router::new()
         .layer(axum::middleware::from_fn(
-            |request: Request<_>, next: Next<_>| async move {
+            |request: Request<_>, next: Next| async move {
                 let uri = request.uri().clone();
 
                 let mut response = next.run(request).await;
