@@ -4,6 +4,7 @@ members = [
   "standalone",
   "shared-lib"
 ]
+package.version = "3.0.0"
 resolver = "2"
 
 [workspace.dependencies]

@@ -420,7 +420,7 @@ checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
 
 [[package]]
 name = "hookbuffer-cf-worker"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "console_error_panic_hook",
  "serde",
@@ -434,7 +434,7 @@ dependencies = [
 
 [[package]]
 name = "hookbuffer-standalone"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "axum",
  "futures",
@@ -1404,7 +1404,7 @@ dependencies = [
 
 [[package]]
 name = "shared-lib"
-version = "0.1.0"
+version = "3.0.0"
 dependencies = [
  "axum",
  "base64",
