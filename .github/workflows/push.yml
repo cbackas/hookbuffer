@@ -11,6 +11,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
+      id-token: write
       contents: write
       pull-requests: write
     steps:
@@ -18,7 +19,6 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GH_TOKEN }}
-          release-type: rust
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       version: ${{ steps.release.outputs.tag_name }}
