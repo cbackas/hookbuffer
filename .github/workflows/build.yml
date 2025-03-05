@@ -8,6 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo build --verbose
   build-worker:
@@ -19,6 +20,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install wrangler
+      - uses: Swatinem/rust-cache@v2
       - run: npx wrangler deploy --dry-run
   build-docker-x86:
     runs-on: ubuntu-latest
