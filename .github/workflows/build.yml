@@ -66,6 +66,4 @@ jobs:
           merge-multiple: true
       - run: docker load -i hookbuffer-amd64.tar
       - run: docker load -i hookbuffer-arm64.tar
-      - run: docker image inspect \
-          --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" \
-          "$(docker image ls -q)"
+      - run: docker image inspect --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" $(docker image ls -q)
