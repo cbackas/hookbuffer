@@ -56,3 +56,13 @@ jobs:
         with:
           name: hookbuffer-docker-arm64-tar
           path: ${{ runner.temp }}/hookbuffer-arm64.tar
+  test-download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hookbuffer-docker-*-tar
+          merge-multiple: true
+      - run: ls -alh
+      - run: ls -alh ${{ github.workspace }}
+
