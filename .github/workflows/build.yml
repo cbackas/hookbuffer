@@ -30,7 +30,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          tags: cbackas/hookbuffer:latest
+          tags: cbackas/hookbuffer:latest-amd64
           platforms: linux/amd64
           outputs: type=docker,dest=${{ runner.temp }}/hookbuffer-amd64.tar
           cache-from: type=gha
@@ -47,7 +47,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          tags: cbackas/hookbuffer:latest
+          tags: cbackas/hookbuffer:latest-arm64
           platforms: linux/arm64
           outputs: type=docker,dest=${{ runner.temp }}/hookbuffer-arm64.tar
           cache-from: type=gha
@@ -66,4 +66,6 @@ jobs:
           merge-multiple: true
       - run: docker load -i hookbuffer-amd64.tar
       - run: docker load -i hookbuffer-arm64.tar
-      - run: docker image ls
+      - run: docker image inspect \
+          --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" \
+          "$(docker image ls -q)"
