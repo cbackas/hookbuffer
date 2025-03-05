@@ -27,12 +27,7 @@ struct TimerState {
 }
 
 impl SonarrHandler {
-    pub async fn handle(
-        &self,
-        request_path: String,
-        body: Value,
-        query: HashMap<String, String>,
-    ) -> Response<Body> {
+    pub async fn handle(&self, request_path: String, body: Value) -> Response<Body> {
         // parse the request body into a SonarrRequestBody
         let mut sonarr_request: SonarrRequestBody = serde_json::from_value(body).unwrap();
 
@@ -97,13 +92,12 @@ impl SonarrHandler {
 
         // now that the request has been added to the queue and the timer_end Instant has been updated
         // we need to start the timer if it's not already running
-        self.start_timer(request_path, query.get("dest").cloned())
-            .await;
+        self.start_timer(request_path).await;
 
         (StatusCode::OK, Json(&"Request added to queue")).into_response()
     }
 
-    async fn start_timer(&self, request_path: String, destination: Option<String>) {
+    async fn start_timer(&self, request_path: String) {
         // get the needed information first and then release the lock
         let (timer_id, timer_end) = {
             let mut timers = self.timers.lock().await;
@@ -124,13 +118,7 @@ impl SonarrHandler {
 
         // now you're free to start the timer without holding the lock
         let timers = Arc::clone(&self.timers);
-        tokio::spawn(process_timer(
-            timers,
-            request_path,
-            destination,
-            timer_id,
-            timer_end,
-        ));
+        tokio::spawn(process_timer(timers, request_path, timer_id, timer_end));
     }
 }
 
@@ -138,7 +126,6 @@ impl SonarrHandler {
 async fn process_timer(
     timers: Arc<Mutex<HashMap<String, TimerState>>>,
     request_path: String,
-    destination: Option<String>,
     timer_id: usize,
     timer_end: Instant,
 ) {
@@ -167,18 +154,16 @@ async fn process_timer(
         }
     };
 
-    // if destination provded in query then use that else use the env variable
     if let Some(queue) = timer_state_queue {
-        process_timer_queue(destination, queue.clone()).await;
+        process_timer_queue(
+            format!("{}{}", crate::env::get_destination_url(), request_path),
+            queue,
+        )
+        .await;
     }
 }
 
-async fn process_timer_queue(destination: Option<String>, queue: Vec<SonarrRequestBody>) {
-    let destination_url = match destination {
-        Some(url) => url,
-        None => crate::env::get_destination_url(),
-    };
-
+async fn process_timer_queue(destination: String, queue: Vec<SonarrRequestBody>) {
     let mut queue = queue;
     let webhook_bodies = group_sonarr_requests(&mut queue)
         .values()
@@ -186,7 +171,7 @@ async fn process_timer_queue(destination: Option<String>, queue: Vec<SonarrReque
         .collect::<Vec<DiscordWebhookBody>>();
 
     for body in webhook_bodies {
-        let _ = shared_lib::send::send_post_request(destination_url.clone(), body).await;
+        let _ = shared_lib::send::send_post_request(destination.clone(), body).await;
         sleep(Duration::from_secs(1)).await;
     }
 }

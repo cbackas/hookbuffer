@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::{HeaderMap, Request, StatusCode, Uri},
     middleware::Next,
     response::{IntoResponse, Response},
@@ -95,7 +94,6 @@ async fn main() {
 async fn handle_post(
     State(sonarr_handler): State<SharedAppState>,
     Path(path): Path<String>, // Must come before other extractors
-    Query(query): Query<HashMap<String, String>>,
     headers: HeaderMap,
     Json(body): Json<Value>,
 ) -> impl IntoResponse {
@@ -114,7 +112,7 @@ async fn handle_post(
         Some(agent) if agent.starts_with("Sonarr") => {
             let handler = Arc::clone(&sonarr_handler);
             tokio::spawn(async move {
-                handler.handle(path.clone(), body, query).await;
+                handler.handle(path.clone(), body).await;
             });
 
             (
