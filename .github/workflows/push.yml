@@ -19,30 +19,16 @@ jobs:
         with:
           token: ${{ secrets.GH_TOKEN }}
           release-type: rust
-      - name: Set release flag
-        if: steps.release.outcome == 'success'
-        run: echo "release_created=true" >> "$GITHUB_OUTPUT"
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.tag_name }}
   docker-publish:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/checkout@v4
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          push: true
-          tags: cbackas/hookbuffer:latest
+    uses: ./.github/workflows/build-docker.yml
+    secrets: inherit
+    with:
+      tag: ${{ needs.release-please.outputs.version }}
   deploy-worker:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
@@ -55,14 +41,15 @@ jobs:
           node-version: 22
       - run: npm install wrangler
       - run: npx wrangler deploy
-  # notify:
-  #   runs-on: ubuntu-latest
-  #   needs: release-please
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Discord notification
-  #       uses: Ilshidur/action-discord@master
-  #       env:
-  #         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-  #       with:
-  #         args: "Version {{ TAG_NAME }} of {{ EVENT_PAYLOAD.repository.full_name }} has been released!"
+  notify:
+    runs-on: ubuntu-latest
+    needs: [release-please, docker-publish, deploy-worker]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    steps:
+      - name: Discord notification
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "Version ${{ needs.release-please.outputs.version }} of Hookbuffer has been released!"
+
