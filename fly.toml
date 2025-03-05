@@ -16,7 +16,7 @@ primary_region = "ord"
   processes = ["app"]
 
 [env]
-  RUST_LOG = "hookbuffer-standalone=debug"
+  RUST_LOG = "hookbuffer_standalone=debug,shared_lib=debug"
 
 [checks]
   [checks.health]
