@@ -66,4 +66,5 @@ jobs:
           merge-multiple: true
       - run: docker load -i hookbuffer-amd64.tar
       - run: docker load -i hookbuffer-arm64.tar
+      - run: docker manifest create ghcr.io/cbackas/hookbuffer:latest --amend cbackas/hookbuffer:latest-arm64 --amend cbackas/hookbuffer:latest-amd64
       - run: docker image inspect --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" $(docker image ls -q)
