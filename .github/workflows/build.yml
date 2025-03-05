@@ -1,0 +1,38 @@
+name: Build
+on:
+  workflow_call:
+  workflow_dispatch:
+jobs:
+  build-full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build
+        run: cargo build --verbose
+  build-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install wrangler
+      - run: npx wrangler deploy --dry-run
+  build-docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          tags: cbackas/hookbuffer:latest
+          platforms: linux/amd64,linux/arm64
+          outputs: type=docker,dest=${{ runner.temp }}/hookbuffer.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hookbuffer-docker-tar
+          path: ${{ runner.temp }}/hookbuffer.tar
