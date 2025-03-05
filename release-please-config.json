@@ -1,8 +1,33 @@
 {
-  "bootstrap-sha": "8e89e45eb48c8c8428e779c54f3a167a7bded304",
-  "packages": {
-    ".": {
-       "release-type": "rust"
+  "include-component-in-tag": false,
+  "plugins": [
+    {
+      "type": "cargo-workspace",
+      "merge": false
+    },
+    {
+      "type": "linked-versions",
+      "groupName": "hookbuffer",
+      "components": [
+        "cf-worker",
+        "standalone",
+        "shared-lib"
+      ]
     }
-  }
+  ],
+  "packages": {
+    "cf-worker": {
+      "release-type": "rust",
+      "component": "cf-worker"
+    },
+    "standalone": {
+      "release-type": "rust",
+      "component": "standalone"
+    },
+    "shared-lib": {
+      "release-type": "rust",
+      "component": "shared-lib"
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
 }

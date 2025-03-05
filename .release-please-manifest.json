@@ -1,5 +1,5 @@
 {
-  "hookbuffer-cf-worker": "2.4.7",
-  "hookbuffer-standalone": "2.4.7",
+  "cf-worker": "2.4.7",
+  "standalone": "2.4.7",
   "shared-lib": "2.4.7"
 }

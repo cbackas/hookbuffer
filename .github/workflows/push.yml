@@ -18,7 +18,6 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GH_TOKEN }}
-          release-type: rust
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       version: ${{ steps.release.outputs.tag_name }}
