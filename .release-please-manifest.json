@@ -1,6 +1,8 @@
 {
   "hookbuffer-cf-worker": "2.4.7",
   "hookbuffer-standalone": "2.4.7",
-  "shared-lib": "2.4.7",
-  ".": "2.4.7"
+  "shared-lib": "3.0.0",
+  ".": "2.4.7",
+  "cf-worker": "2.4.8",
+  "standalone": "2.4.8"
 }
