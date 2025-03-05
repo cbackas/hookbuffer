@@ -26,6 +26,6 @@ jobs:
       - run: npx wrangler deploy --dry-run
   build-docker:
     uses: ./.github/workflows/build-docker.yml
-    # with:
-    #   no_push: true
+    with:
+      no_push: true
 
