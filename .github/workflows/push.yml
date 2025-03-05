@@ -18,10 +18,9 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GH_TOKEN }}
-          release-type: rust
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      version: ${{ steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release.outputs.releases_created }}
+      version: ${{ steps.release.outputs.standalone--tag_name }}
   docker-publish:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
