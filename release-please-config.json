@@ -1,8 +1,10 @@
 {
   "bootstrap-sha": "8e89e45eb48c8c8428e779c54f3a167a7bded304",
+  "plugins": ["cargo-workspace"],
+  "release-type": "rust",
   "packages": {
-    ".": {
-       "release-type": "rust"
-    }
+    "hookbuffer-cf-worker": {},
+    "hookbuffer-standalone": {},
+    "shared-lib": {}
   }
 }
