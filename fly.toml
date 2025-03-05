@@ -1,13 +1,10 @@
-# fly.toml app configuration file generated for hookbuffer on 2023-10-14T01:01:00-05:00
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# See https://fly.io/docs/reference/configuration/
 
 app = "hookbuffer"
 primary_region = "ord"
 
 [build]
-  image = "ghcr.io/cbackas/hookbuffer:latest"
+  # image = "ghcr.io/cbackas/hookbuffer:latest"
   build-target = "runtime"
 
 [http_service]
@@ -19,7 +16,7 @@ primary_region = "ord"
   processes = ["app"]
 
 [env]
-  RUST_LOG = "hookbuffer=debug"
+  RUST_LOG = "hookbuffer_standalone=debug,shared_lib=debug"
 
 [checks]
   [checks.health]

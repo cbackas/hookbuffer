@@ -1,11 +1,8 @@
-FROM rust as build
-ADD ./src /app/src
-ADD ./Cargo.lock /app/Cargo.lock
-ADD ./Cargo.toml /app/Cargo.toml
+FROM rust:bookworm AS build
 WORKDIR /app
-RUN cargo build --release
+ADD . .
+RUN cargo build -p hookbuffer-standalone --release
 
-FROM rust as runtime
-COPY --from=build /app/target/release/hookbuffer /usr/local/bin/hookbuffer
-
-CMD ["hookbuffer"]
+FROM debian:bookworm-slim AS runtime
+COPY --from=build /app/target/release/hookbuffer-standalone /usr/local/bin/hookbuffer-standalone
+CMD ["hookbuffer-standalone"]

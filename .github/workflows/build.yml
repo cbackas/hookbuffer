@@ -1,0 +1,31 @@
+name: Build
+on:
+  workflow_call:
+  workflow_dispatch:
+env:
+  REGISTRY_IMAGE: ghcr.io/cbackas/hookbuffer
+jobs:
+  build-full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --verbose
+  build-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install wrangler
+      - uses: Swatinem/rust-cache@v2
+      - run: npx wrangler deploy --dry-run
+  build-docker:
+    uses: ./.github/workflows/build-docker.yml
+    with:
+      no_push: true
+

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SonarrCustomFormat {
@@ -88,7 +88,7 @@ pub struct SonarrSeries {
     pub year: Option<u64>,
 }
 
-#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize, Clone, PartialOrd, Ord)]
+#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize, Clone, Copy, PartialOrd, Ord)]
 pub enum SonarrEventType {
     Test,
     Grab,
@@ -104,7 +104,7 @@ pub enum SonarrEventType {
     ManualInteractionRequired,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SonarrRequestBody {
     #[serde(rename = "applicationUrl")]
     pub application_url: Option<String>,
@@ -125,4 +125,41 @@ pub struct SonarrRequestBody {
     pub episode_file: Option<SonarrEpisodeFile>,
     #[serde(rename = "isUpgrade")]
     pub is_upgrade: Option<bool>,
+}
+
+#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize, Clone, Copy)]
+pub struct SonarrGroupKey(pub u64, pub SonarrEventType, pub u64);
+
+impl PartialOrd for SonarrGroupKey {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for SonarrGroupKey {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (self.0, &self.1, self.2).cmp(&(other.0, &other.1, other.2))
+    }
+}
+
+impl From<&SonarrRequestBody> for SonarrGroupKey {
+    fn from(sonarr_event: &SonarrRequestBody) -> Self {
+        let event_type = match sonarr_event.event_type {
+            Some(SonarrEventType::Download) => {
+                if sonarr_event.is_upgrade.unwrap_or(false) {
+                    SonarrEventType::Upgrade
+                } else {
+                    SonarrEventType::Download
+                }
+            }
+            Some(event_type) => event_type,
+            _ => SonarrEventType::Test,
+        };
+        let series_id = sonarr_event.series.id.unwrap_or(0);
+        let season_number = match sonarr_event.episodes.first() {
+            Some(episode) => episode.season_number,
+            None => 0,
+        };
+        SonarrGroupKey(series_id, event_type, season_number)
+    }
 }

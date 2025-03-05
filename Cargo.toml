@@ -1,17 +1,18 @@
-[package]
-name = "hookbuffer"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = [
+  "cf-worker",
+  "standalone",
+  "shared-lib"
+]
+package.version = "2.4.7"
+resolver = "2"
 
-[dependencies]
-base64 = "0.22.1"
-futures = "0.3.31"
-reqwest = { version = "0.12.12", features = ["json"] }
+[workspace.dependencies]
+shared-lib = { path = "./shared-lib" }
+serde_json = "1.0.139"
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.137"
-serial_test = "3.2.0"
-tokio = { version = "1.43.0", features = ["full"] }
-twilight-model = "0.16.0"
-warp = "0.3.7"
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tokio = { version = "1.43.0", features = ["full"] }
+worker = { version="0.5.0", features=['http', 'queue'] }
+axum = "0.8.1"
+

@@ -1,5 +1,4 @@
-*.exe
-
-# Added by cargo
-
-/target
+target
+node_modules
+.wrangler
+*.vars
