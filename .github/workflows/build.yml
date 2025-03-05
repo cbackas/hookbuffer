@@ -64,6 +64,6 @@ jobs:
         with:
           pattern: hookbuffer-docker-*-tar
           merge-multiple: true
-      - run: ls -alh
-      - run: ls -alh ${{ github.workspace }}
-
+      - run: docker load -i hookbuffer-amd64.tar
+      - run: docker load -i hookbuffer-arm64.tar
+      - run: docker image ls
