@@ -22,7 +22,7 @@ jobs:
       - run: npm install wrangler
       - uses: Swatinem/rust-cache@v2
       - run: npx wrangler deploy --dry-run
-  build-docker-x86:
+  build-docker-amd64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
         with:
           name: hookbuffer-docker-amd64-tar
           path: ${{ runner.temp }}/hookbuffer-amd64.tar
-  build-docker-arm:
+  build-docker-arm64:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
