@@ -30,7 +30,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          tags: cbackas/hookbuffer:latest-amd64
+          tags: ghcr.io/cbackas/hookbuffer:latest-amd64
           platforms: linux/amd64
           outputs: type=docker,dest=${{ runner.temp }}/hookbuffer-amd64.tar
           cache-from: type=gha
@@ -47,7 +47,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          tags: cbackas/hookbuffer:latest-arm64
+          tags: ghcr.io/cbackas/hookbuffer:latest-arm64
           platforms: linux/arm64
           outputs: type=docker,dest=${{ runner.temp }}/hookbuffer-arm64.tar
           cache-from: type=gha
@@ -74,8 +74,8 @@ jobs:
       - name: Get Image IDs
         id: get_ids
         run: |
-          AMD64_ID=$(docker image inspect --format '{{.ID}}' cbackas/hookbuffer:latest-amd64)
-          ARM64_ID=$(docker image inspect --format '{{.ID}}' cbackas/hookbuffer:latest-arm64)
+          AMD64_ID=$(docker image inspect --format '{{.ID}}' ghcr.io/cbackas/hookbuffer:latest-amd64)
+          ARM64_ID=$(docker image inspect --format '{{.ID}}' ghcr.io/cbackas/hookbuffer:latest-arm64)
           echo "AMD64_ID=${AMD64_ID}" >> "$GITHUB_OUTPUT"
           echo "ARM64_ID=${ARM64_ID}" >> "$GITHUB_OUTPUT"
 
@@ -85,16 +85,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag and Push AMD64 Digest
+      - name: Push Digests
         run: |
-          docker tag ${{ steps.get_ids.outputs.AMD64_ID }} \
-            ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.AMD64_ID }}
           docker push ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.AMD64_ID }}
-
-      - name: Tag and Push ARM64 Digest
-        run: |
-          docker tag ${{ steps.get_ids.outputs.ARM64_ID }} \
-            ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.ARM64_ID }}
           docker push ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.ARM64_ID }}
 
       - name: Create Manifest List
