@@ -59,12 +59,55 @@ jobs:
   test-download:
     runs-on: ubuntu-latest
     needs: [build-docker-amd64, build-docker-arm64]
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           pattern: hookbuffer-docker-*-tar
           merge-multiple: true
+
       - run: docker load -i hookbuffer-amd64.tar
       - run: docker load -i hookbuffer-arm64.tar
-      - run: docker manifest create ghcr.io/cbackas/hookbuffer:latest --amend cbackas/hookbuffer:latest-arm64 --amend cbackas/hookbuffer:latest-amd64
-      - run: docker image inspect --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" $(docker image ls -q)
+
+      - name: Get Image IDs
+        id: get_ids
+        run: |
+          AMD64_ID=$(docker image inspect --format '{{.ID}}' cbackas/hookbuffer:latest-amd64)
+          ARM64_ID=$(docker image inspect --format '{{.ID}}' cbackas/hookbuffer:latest-arm64)
+          echo "AMD64_ID=${AMD64_ID}" >> "$GITHUB_OUTPUT"
+          echo "ARM64_ID=${ARM64_ID}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and Push AMD64 Digest
+        run: |
+          docker tag ${{ steps.get_ids.outputs.AMD64_ID }} \
+            ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.AMD64_ID }}
+          docker push ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.AMD64_ID }}
+
+      - name: Tag and Push ARM64 Digest
+        run: |
+          docker tag ${{ steps.get_ids.outputs.ARM64_ID }} \
+            ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.ARM64_ID }}
+          docker push ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.ARM64_ID }}
+
+      - name: Create Manifest List
+        run: |
+          docker manifest create ghcr.io/cbackas/hookbuffer:latest \
+            --amend ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.AMD64_ID }} \
+            --amend ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.ARM64_ID }}
+
+      - name: Push Combined Manifest
+        run: docker manifest push ghcr.io/cbackas/hookbuffer:pr-testing
+
+      - name: Cleanup Local Tags
+        run: |
+          docker image rm \
+            ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.AMD64_ID }} \
+            ghcr.io/cbackas/hookbuffer@${{ steps.get_ids.outputs.ARM64_ID }}
