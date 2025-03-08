@@ -18,10 +18,10 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GH_TOKEN }}
-          release-type: rust
+      - run: "echo 'Outputs: ${{ toJSON(steps.release.outputs) }}'"
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      version: ${{ steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release.outputs.releases_created }}
+      version: ${{ steps.release.outputs['standalone--tag_name'] }}
   docker-publish:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
@@ -33,14 +33,13 @@ jobs:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    environment: cloudflare-worker
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v4
+      - uses: cloudflare/wrangler-action@v3
         with:
-          node-version: 22
-      - run: npm install wrangler
-      - run: npx wrangler deploy
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   notify:
     runs-on: ubuntu-latest
     needs: [release-please, docker-publish, deploy-worker]
