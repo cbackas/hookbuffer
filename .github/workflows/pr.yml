@@ -18,15 +18,25 @@ jobs:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Run linters
-        uses: wearerequired/lint-action@master
         with:
-          auto_fix: false
-          rustfmt: true
-          clippy: true
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Run Super-Linter
+        uses: github/super-linter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_RUST_2015: false
+          VALIDATE_RUST_2018: false
+          VALIDATE_RUST_2021: true
+          VALIDATE_RUST_CLIPPY: true
+          RUST_CLIPPY_COMMAND_OPTIONS: "--all-targets --all-features"
   test:
     runs-on: ubuntu-latest
     steps:
