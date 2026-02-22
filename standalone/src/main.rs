@@ -66,7 +66,7 @@ async fn main() {
                     let milliseconds = latency.as_secs_f64() * 1000.0
                         + latency.subsec_nanos() as f64 / 1_000_000.0;
                     // Format the milliseconds to a string with 2 decimal places and add 'ms' postfix
-                    format!("{:.2}ms", milliseconds)
+                    format!("{milliseconds:.2}ms")
                 };
 
                 if url == "/healthcheck" {
@@ -85,7 +85,7 @@ async fn main() {
     let server_port = env::get_server_port();
     tracing::info!("Server started at localhost:{}", server_port);
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", server_port))
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{server_port}"))
         .await
         .unwrap();
     axum::serve(listener, app).await.unwrap();
@@ -102,8 +102,8 @@ async fn handle_post(
         std::env::var("HOOKBUFFER_USER"),
         std::env::var("HOOKBUFFER_PASS"),
     ) {
-        if let Err(response) = shared_lib::auth::check_auth(user, pass, &headers) {
-            return response;
+        if let Err(err) = shared_lib::auth::check_auth(user, pass, &headers) {
+            return err.into_response();
         }
     }
 

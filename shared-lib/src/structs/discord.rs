@@ -48,7 +48,7 @@ impl From<&Vec<SonarrRequestBody>> for DiscordWebhookBody {
                 sonarr_data[0].episodes[0].episode_number,
                 sonarr_data[0].episodes[0].title
             ),
-            _ => format!("{}: {} Season {:02}", content, series_title, season_number),
+            _ => format!("{content}: {series_title} Season {season_number:02}"),
         };
 
         let mut episodes_with_quality: Vec<_> = sonarr_data
@@ -93,13 +93,9 @@ impl From<&Vec<SonarrRequestBody>> for DiscordWebhookBody {
             .into_iter()
             .map(
                 |(season_number, episode_number, title, quality, count)| match count {
-                    1 => format!(
-                        "{:02}x{:02} - {} [{}]",
-                        season_number, episode_number, title, quality
-                    ),
+                    1 => format!("{season_number:02}x{episode_number:02} - {title} [{quality}]"),
                     _ => format!(
-                        "{:02}x{:02} - {} [{}] ({}x)",
-                        season_number, episode_number, title, quality, count
+                        "{season_number:02}x{episode_number:02} - {title} [{quality}] ({count}x)"
                     ),
                 },
             )

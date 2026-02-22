@@ -15,10 +15,10 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let headers = req.headers().into();
     // Basic auth check
     if let Ok(pass) = env.secret("SECRET_KEY") {
-        if let Err(response) =
+        if let Err(err) =
             shared_lib::auth::check_auth("admin".to_string(), pass.to_string(), &headers)
         {
-            return Response::try_from(response);
+            return Response::error(err.message, err.status.as_u16());
         }
     }
 
