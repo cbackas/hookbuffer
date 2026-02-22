@@ -54,13 +54,12 @@ pub struct ChannelQueue {
     env: Env,
 }
 
-#[durable_object]
 impl DurableObject for ChannelQueue {
     fn new(state: State, env: Env) -> Self {
         Self { state, env }
     }
 
-    async fn fetch(&mut self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         self.state.storage().set_alarm(15 * 1000).await?;
 
         let sonarr_event: SonarrRequestBody = {
@@ -78,6 +77,7 @@ impl DurableObject for ChannelQueue {
                 .storage()
                 .get::<Vec<SonarrRequestBody>>(&group_key)
                 .await
+                .unwrap_or_default()
                 .unwrap_or_default();
             items.push(sonarr_event);
             self.state.storage().put(&group_key, &items).await?;
@@ -93,7 +93,7 @@ impl DurableObject for ChannelQueue {
         }))
     }
 
-    async fn alarm(&mut self) -> Result<Response> {
+    async fn alarm(&self) -> Result<Response> {
         let outbound_queue = self.env.queue("outbound_messages")?;
 
         let list_options = ListOptions::new().prefix("groupkey-");
@@ -105,8 +105,13 @@ impl DurableObject for ChannelQueue {
             .entries();
 
         let url = &{
-            let path: String = self.state.storage().get("url").await?;
-            format!("https://discord.com{}", path)
+            let path: String = self
+                .state
+                .storage()
+                .get("url")
+                .await?
+                .expect("URL should be set if there are items in the queue.");
+            format!("https://discord.com{path}")
         };
 
         for entry in storage_map {
