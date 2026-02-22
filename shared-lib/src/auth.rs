@@ -44,11 +44,13 @@ pub fn check_auth(
     let auth = auth_str
         .strip_prefix("Basic ")
         .ok_or(AuthError::bad_request("Invalid Authorization header"))?;
-    let decoded = general_purpose::STANDARD
-        .decode(auth)
-        .map_err(|_| AuthError::bad_request("Invalid Authorization header: couldn't decode base64"))?;
+    let decoded = general_purpose::STANDARD.decode(auth).map_err(|_| {
+        AuthError::bad_request("Invalid Authorization header: couldn't decode base64")
+    })?;
     let auth = String::from_utf8(decoded).map_err(|_| {
-        AuthError::bad_request("Invalid Authorization header: couldn't convert decoded utf8 to string")
+        AuthError::bad_request(
+            "Invalid Authorization header: couldn't convert decoded utf8 to string",
+        )
     })?;
 
     let mut auth_parts = auth.splitn(2, ':');
