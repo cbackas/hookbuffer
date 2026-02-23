@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/cbackas/hookbuffer/compare/v3.0.0...v3.0.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* cleanup clippy warnings ([98943c2](https://github.com/cbackas/hookbuffer/commit/98943c2feb871a54d5aeab846f9983289ed42ad2))
+
 ## [3.0.0](https://github.com/cbackas/hookbuffer/compare/v2.4.7...v3.0.0) (2025-03-08)
 
 
