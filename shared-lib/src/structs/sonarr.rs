@@ -127,6 +127,22 @@ pub struct SonarrRequestBody {
     pub is_upgrade: Option<bool>,
 }
 
+impl SonarrRequestBody {
+    /// The canonical event type used for both grouping and rendering: an
+    /// `isUpgrade` download is treated as [`SonarrEventType::Upgrade`], and a
+    /// missing event type falls back to [`SonarrEventType::Test`]. This is the
+    /// single source of truth so the standalone and worker paths never diverge.
+    pub fn effective_event_type(&self) -> SonarrEventType {
+        match self.event_type {
+            Some(SonarrEventType::Download) if self.is_upgrade.unwrap_or(false) => {
+                SonarrEventType::Upgrade
+            }
+            Some(event_type) => event_type,
+            None => SonarrEventType::Test,
+        }
+    }
+}
+
 #[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize, Clone, Copy)]
 pub struct SonarrGroupKey(pub u64, pub SonarrEventType, pub u64);
 
@@ -144,17 +160,7 @@ impl Ord for SonarrGroupKey {
 
 impl From<&SonarrRequestBody> for SonarrGroupKey {
     fn from(sonarr_event: &SonarrRequestBody) -> Self {
-        let event_type = match sonarr_event.event_type {
-            Some(SonarrEventType::Download) => {
-                if sonarr_event.is_upgrade.unwrap_or(false) {
-                    SonarrEventType::Upgrade
-                } else {
-                    SonarrEventType::Download
-                }
-            }
-            Some(event_type) => event_type,
-            _ => SonarrEventType::Test,
-        };
+        let event_type = sonarr_event.effective_event_type();
         let series_id = sonarr_event.series.id.unwrap_or(0);
         let season_number = match sonarr_event.episodes.first() {
             Some(episode) => episode.season_number,

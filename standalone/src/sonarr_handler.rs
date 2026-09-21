@@ -5,6 +5,7 @@ use axum::Json;
 use serde_json::Value;
 use shared_lib::structs::discord::DiscordWebhookBody;
 use shared_lib::structs::sonarr::{SonarrEventType, SonarrGroupKey, SonarrRequestBody};
+use shared_lib::structs::summary::summarize_group;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -31,19 +32,8 @@ impl SonarrHandler {
         // parse the request body into a SonarrRequestBody
         let mut sonarr_request: SonarrRequestBody = serde_json::from_value(body).unwrap();
 
-        // if the event type is Download, check if it's an upgrade and change the event type to Upgrade if it is
-        let event_type = sonarr_request.event_type.unwrap();
-        let event_type = match event_type {
-            SonarrEventType::Download => {
-                if sonarr_request.is_upgrade.unwrap_or(false) {
-                    SonarrEventType::Upgrade
-                } else {
-                    SonarrEventType::Download
-                }
-            }
-            _ => event_type,
-        };
-        // save the event type back to request object
+        // normalize the event type (Download + isUpgrade -> Upgrade) and save it back
+        let event_type = sonarr_request.effective_event_type();
         sonarr_request.event_type = Some(event_type);
 
         if !(event_type == SonarrEventType::Grab
@@ -167,7 +157,7 @@ async fn process_timer_queue(destination: String, queue: Vec<SonarrRequestBody>)
     let mut queue = queue;
     let webhook_bodies = group_sonarr_requests(&mut queue)
         .values()
-        .map(DiscordWebhookBody::from)
+        .map(|group| DiscordWebhookBody::from(&summarize_group(group)))
         .collect::<Vec<DiscordWebhookBody>>();
 
     for body in webhook_bodies {
@@ -185,18 +175,8 @@ fn group_sonarr_requests(
 
     while let Some(mut sonarr_request) = queue.pop() {
         for episode in sonarr_request.episodes.iter() {
-            // pull the event_type out and check if its an import or an upgrade
-            let event_type = sonarr_request.event_type.unwrap();
-            let event_type = match event_type {
-                SonarrEventType::Download => {
-                    if sonarr_request.is_upgrade.unwrap_or(false) {
-                        SonarrEventType::Upgrade
-                    } else {
-                        SonarrEventType::Download
-                    }
-                }
-                _ => event_type,
-            };
+            // normalize the event type (Download + isUpgrade -> Upgrade)
+            let event_type = sonarr_request.effective_event_type();
             sonarr_request.event_type = Some(event_type); // save it back to the request
 
             // add the request to the appropriate group

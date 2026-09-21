@@ -6,6 +6,7 @@ use std::{
 use shared_lib::structs::{
     discord::{DiscordWebhook, DiscordWebhookBody},
     sonarr::{SonarrGroupKey, SonarrRequestBody},
+    summary::summarize_group,
 };
 use wasm_bindgen::JsValue;
 use worker::*;
@@ -126,7 +127,7 @@ impl DurableObject for ChannelQueue {
                 })
                 .map_err(Error::from)?;
 
-            let webhook: DiscordWebhookBody = group_items.into();
+            let webhook: DiscordWebhookBody = (&summarize_group(&group_items)).into();
             self.state.storage().delete(&group_key).await?;
             outbound_queue
                 .send(DiscordWebhook::new(url.to_string(), webhook))
