@@ -9,8 +9,8 @@ serde = {workspace = true}
 serde_json = {workspace = true}
 tracing = {workspace = true}
 tokio = {workspace = true}
-futures = "0.3.31"
-serial_test = "3.2.0"
+futures = "0.3.34"
+serial_test = "4.0.1"
 axum = { workspace = true}
-tower-http = { version = "0.6.2", features = ["trace", "fs", "compression-gzip"] }
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tower-http = { version = "0.7.1", features = ["trace", "fs", "compression-gzip"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
