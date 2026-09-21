@@ -49,9 +49,44 @@ If you deploy this container on the same local network as your Sonarr instance, 
 #### Cloudflare Workers:
 Similar to the Docker auth, you can require basic auth for all Hookbuffer requests when the Workers version. If you populate the `SECET_KEY` secret on your Worker environment, then all requests will require basic auth with a username matching `admin` and password matching the value of `SECRET_KEY`. To set the secret on the environment, run `npx wrangler secret put SECRET_KEY`
 
+### Forwarding Targets:
+By default Hookbuffer builds Discord webhook payloads and forwards them to Discord. It can instead forward the same grouped notifications to [Pushover](https://pushover.net/). The target is chosen per instance with the `HOOKBUFFER_TARGET` env var (`discord` by default, or `pushover`).
+
+The grouping is identical regardless of target - events are still batched by show/season/episode. For Pushover, the notification title is the series name, and the message body is the (bold) headline followed by the same episode list you'd see in Discord.
+
+#### Pushover setup:
+You'll need your Pushover **user key** and an **application token** (create an application at https://pushover.net/apps/build).
+
+- `HOOKBUFFER_TARGET` - `discord` (default) or `pushover`
+- `PUSHOVER_TOKEN` - Pushover application API token (required when target is `pushover`)
+- `PUSHOVER_USER` - Pushover user key (required when target is `pushover`)
+- `PUSHOVER_PRIORITY` - *(optional)* message [priority](https://pushover.net/api#priority), an integer from `-2` to `2` (default `0`). Priority `2` (emergency) automatically sends `retry=60`/`expire=3600`.
+- `PUSHOVER_SOUND` - *(optional)* notification [sound](https://pushover.net/api#sounds) name
+
+If `HOOKBUFFER_TARGET=pushover` but the token/user aren't both set, Hookbuffer logs an error and falls back to Discord.
+
+##### Docker:
+```
+docker run --name hookbuffer -p 8000:8000 \
+  -e HOOKBUFFER_TARGET=pushover \
+  -e PUSHOVER_TOKEN=your_app_token \
+  -e PUSHOVER_USER=your_user_key \
+  ghcr.io/cbackas/hookbuffer:latest
+```
+
+##### Cloudflare Workers:
+Set `HOOKBUFFER_TARGET` (and optionally `PUSHOVER_PRIORITY` / `PUSHOVER_SOUND`) as a `[vars]` entry in `wrangler.toml`, and store the credentials as secrets:
+```
+npx wrangler secret put PUSHOVER_TOKEN
+npx wrangler secret put PUSHOVER_USER
+```
+
+> When forwarding to Pushover the incoming Discord webhook URL path is ignored for delivery (everything goes to your Pushover user), though on the Workers version the path still partitions the grouping queue.
+
 ### Other Env vars:
 - `HOOKBUFFER_PORT` - Port to listen on inside container (default 8000)
 - `HOOKBUFFER_DESTINATION_URL` - The URL used to send the grouped webhooks to. Defaults to `https://discordapp.com/`
+- `HOOKBUFFER_TARGET` - Forwarding target, `discord` (default) or `pushover` (see [Forwarding Targets](#forwarding-targets))
 
 ### Configuring Sonarr
 First you need to create a Discord webhook in the Discord channel you want to send notifications to. You can do this by going to the channel settings, then "Integrations" and "Webhooks". Create a webhook and copy the URL. More here: https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks

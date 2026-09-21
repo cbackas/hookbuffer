@@ -3,7 +3,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::Value;
-use shared_lib::structs::discord::DiscordWebhookBody;
 use shared_lib::structs::sonarr::{SonarrEventType, SonarrGroupKey, SonarrRequestBody};
 use shared_lib::structs::summary::summarize_group;
 use std::collections::HashMap;
@@ -145,23 +144,22 @@ async fn process_timer(
     };
 
     if let Some(queue) = timer_state_queue {
-        process_timer_queue(
-            format!("{}{}", crate::env::get_destination_url(), request_path),
-            queue,
-        )
-        .await;
+        process_timer_queue(request_path, queue).await;
     }
 }
 
-async fn process_timer_queue(destination: String, queue: Vec<SonarrRequestBody>) {
+async fn process_timer_queue(request_path: String, queue: Vec<SonarrRequestBody>) {
     let mut queue = queue;
-    let webhook_bodies = group_sonarr_requests(&mut queue)
-        .values()
-        .map(|group| DiscordWebhookBody::from(&summarize_group(group)))
-        .collect::<Vec<DiscordWebhookBody>>();
+    let target = crate::env::get_target();
+    let discord_url = format!("{}{}", crate::env::get_destination_url(), request_path);
 
-    for body in webhook_bodies {
-        let _ = shared_lib::send::send_post_request(destination.clone(), body).await;
+    let messages = group_sonarr_requests(&mut queue)
+        .values()
+        .map(|group| target.build(&summarize_group(group), &discord_url))
+        .collect::<Vec<_>>();
+
+    for message in messages {
+        let _ = shared_lib::send::send_post_request(&message).await;
         sleep(Duration::from_secs(1)).await;
     }
 }

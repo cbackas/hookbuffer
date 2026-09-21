@@ -5,18 +5,6 @@ use super::sonarr::SonarrEventType;
 use super::summary::GroupSummary;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DiscordWebhook {
-    pub url: String,
-    pub body: DiscordWebhookBody,
-}
-
-impl DiscordWebhook {
-    pub fn new(url: String, body: DiscordWebhookBody) -> Self {
-        DiscordWebhook { url, body }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DiscordWebhookBody {
     pub content: String,
     pub embeds: Vec<Embed>,

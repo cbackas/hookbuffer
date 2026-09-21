@@ -3,8 +3,9 @@ use std::{
     time::Duration,
 };
 
+use shared_lib::send::{Outbound, Target};
 use shared_lib::structs::{
-    discord::{DiscordWebhook, DiscordWebhookBody},
+    pushover::PushoverConfig,
     sonarr::{SonarrGroupKey, SonarrRequestBody},
     summary::summarize_group,
 };
@@ -47,6 +48,65 @@ fn hash_group_key(s: &SonarrGroupKey) -> u64 {
     let mut hasher = DefaultHasher::new();
     s.hash(&mut hasher);
     hasher.finish()
+}
+
+/// Resolve the forwarding target from the worker environment. `HOOKBUFFER_TARGET`
+/// is a plain var (`discord` by default); Pushover credentials come from secrets.
+/// Falls back to Discord when `pushover` is requested without credentials.
+fn get_target(env: &Env) -> Target {
+    let target = env
+        .var("HOOKBUFFER_TARGET")
+        .map(|v| v.to_string())
+        .unwrap_or_default();
+
+    if target.eq_ignore_ascii_case("pushover") {
+        match pushover_config(env) {
+            Some(config) => Target::Pushover(config),
+            None => {
+                console_error!(
+                    "HOOKBUFFER_TARGET=pushover but PUSHOVER_TOKEN and PUSHOVER_USER are not both set; falling back to discord"
+                );
+                Target::Discord
+            }
+        }
+    } else {
+        if !target.is_empty() && !target.eq_ignore_ascii_case("discord") {
+            console_warn!(
+                "Unknown HOOKBUFFER_TARGET '{}', defaulting to discord",
+                target
+            );
+        }
+        Target::Discord
+    }
+}
+
+fn pushover_config(env: &Env) -> Option<PushoverConfig> {
+    let token = secret(env, "PUSHOVER_TOKEN")?;
+    let user = secret(env, "PUSHOVER_USER")?;
+    let priority = env
+        .var("PUSHOVER_PRIORITY")
+        .ok()
+        .and_then(|v| v.to_string().parse::<i8>().ok())
+        .filter(|priority| (-2..=2).contains(priority));
+    let sound = env
+        .var("PUSHOVER_SOUND")
+        .ok()
+        .map(|v| v.to_string())
+        .filter(|value| !value.is_empty());
+
+    Some(PushoverConfig {
+        token,
+        user,
+        priority,
+        sound,
+    })
+}
+
+fn secret(env: &Env, name: &str) -> Option<String> {
+    env.secret(name)
+        .ok()
+        .map(|secret| secret.to_string())
+        .filter(|value| !value.is_empty())
 }
 
 #[durable_object]
@@ -96,6 +156,7 @@ impl DurableObject for ChannelQueue {
 
     async fn alarm(&self) -> Result<Response> {
         let outbound_queue = self.env.queue("outbound_messages")?;
+        let target = get_target(&self.env);
 
         let list_options = ListOptions::new().prefix("groupkey-");
         let storage_map = self
@@ -127,11 +188,9 @@ impl DurableObject for ChannelQueue {
                 })
                 .map_err(Error::from)?;
 
-            let webhook: DiscordWebhookBody = (&summarize_group(&group_items)).into();
+            let message = target.build(&summarize_group(&group_items), url);
             self.state.storage().delete(&group_key).await?;
-            outbound_queue
-                .send(DiscordWebhook::new(url.to_string(), webhook))
-                .await?;
+            outbound_queue.send(message).await?;
         }
 
         Response::from_json(&serde_json::json!({
@@ -142,15 +201,14 @@ impl DurableObject for ChannelQueue {
 
 #[event(queue)]
 pub async fn consume_webhook_queue(
-    message_batch: MessageBatch<DiscordWebhook>,
+    message_batch: MessageBatch<Outbound>,
     _env: Env,
     _ctx: Context,
 ) -> Result<()> {
-    let messages: Vec<Message<DiscordWebhook>> = message_batch.messages()?;
+    let messages: Vec<Message<Outbound>> = message_batch.messages()?;
 
     for message in messages {
-        let webhook = message.body().clone();
-        match shared_lib::send::send_post_request(webhook.url, webhook.body).await {
+        match shared_lib::send::send_post_request(message.body()).await {
             Ok(_) => message.ack(),
             Err(_) => message.retry(),
         };
