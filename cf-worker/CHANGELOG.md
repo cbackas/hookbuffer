@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.1.0](https://github.com/cbackas/hookbuffer/compare/v3.0.1...v3.1.0) (2026-09-21)
+
+
+### Features
+
+* unified logic between standalone and cf-worker supporting future destinations ([9251edb](https://github.com/cbackas/hookbuffer/commit/9251edb1aa3a1eff6844b7bdc57016db3ff7fbf0))
+
+
+### Bug Fixes
+
+* upgrade wrangler 0.7 -&gt; 0.8 ([e20942c](https://github.com/cbackas/hookbuffer/commit/e20942cdb465447754941423292e20744d15c34b))
+
 ## [3.0.1](https://github.com/cbackas/hookbuffer/compare/v3.0.0...v3.0.1) (2026-02-23)
 
 
