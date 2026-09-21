@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/cbackas/hookbuffer/compare/v3.1.0...v3.2.0) (2026-09-21)
+
+
+### Features
+
+* pushover support ([37bfd2b](https://github.com/cbackas/hookbuffer/commit/37bfd2b13dea2e368663c8745c67dfd4a41ce2b1))
+
 ## [3.1.0](https://github.com/cbackas/hookbuffer/compare/v3.0.1...v3.1.0) (2026-09-21)
 
 
