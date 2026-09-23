@@ -1,5 +1,5 @@
 {
-  "cf-worker": "3.2.0",
-  "standalone": "3.2.0",
-  "shared-lib": "3.2.0"
+  "cf-worker": "3.2.1",
+  "standalone": "3.2.1",
+  "shared-lib": "3.2.1"
 }
