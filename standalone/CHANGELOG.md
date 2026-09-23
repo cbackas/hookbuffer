@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/cbackas/hookbuffer/compare/v3.2.0...v3.2.1) (2026-09-23)
+
+
+### Build System
+
+* upgrade all cargo dependencies ([0f615eb](https://github.com/cbackas/hookbuffer/commit/0f615eb9e6625f13819e5cde79a5c76c7b992fd3))
+
 ## [3.2.0](https://github.com/cbackas/hookbuffer/compare/v3.1.0...v3.2.0) (2026-09-21)
 
 
