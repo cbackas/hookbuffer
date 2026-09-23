@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+# Consumed by ./.github/actions/pushover in every job below; set once here so
+# call sites only pass message content.
+env:
+  PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+  PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
 jobs:
   build:
     uses: ./.github/workflows/build.yml
@@ -21,7 +26,10 @@ jobs:
       - run: "echo 'Outputs: ${{ toJSON(steps.release.outputs) }}'"
     outputs:
       release_created: ${{ steps.release.outputs.releases_created }}
-      version: ${{ steps.release.outputs['standalone--tag_name'] }}
+      # With include-component-in-tag:false + linked-versions, release-please
+      # emits a single set of release outputs under the first package (cf-worker).
+      version: ${{ steps.release.outputs['cf-worker--tag_name'] }}
+      release_url: ${{ steps.release.outputs['cf-worker--html_url'] }}
   docker-publish:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
@@ -36,21 +44,45 @@ jobs:
     environment: cloudflare-worker
     steps:
       - uses: actions/checkout@v7
+      - name: Notify deploy started
+        uses: ./.github/actions/pushover
+        with:
+          title: Deploying Hookbuffer ${{ needs.release-please.outputs.version }}
+          message: Worker deploy <b>started</b> for ${{ needs.release-please.outputs.version }}.
       - uses: dtolnay/rust-toolchain@stable
       - name: Install Wrangler v4
         run: npm install --save-dev wrangler@4
       - uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-  notify:
+      - name: Notify deploy succeeded
+        if: success()
+        uses: ./.github/actions/pushover
+        with:
+          title: Deployed Hookbuffer ${{ needs.release-please.outputs.version }}
+          message: Worker deploy <b>succeeded</b> for ${{ needs.release-please.outputs.version }}.
+          url: ${{ needs.release-please.outputs.release_url }}
+          url_title: View release notes
+      - name: Notify deploy failed
+        if: failure()
+        uses: ./.github/actions/pushover
+        with:
+          title: Deploy FAILED — Hookbuffer ${{ needs.release-please.outputs.version }}
+          message: Worker deploy <b>failed</b> for ${{ needs.release-please.outputs.version }}. Check the run logs.
+          priority: "1"
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          url_title: View workflow run
+  notify-release:
     runs-on: ubuntu-latest
-    needs: [release-please, docker-publish, deploy-worker]
+    needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     steps:
-      - name: Discord notification
-        uses: Ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      - uses: actions/checkout@v7
+      - name: Notify new version
+        uses: ./.github/actions/pushover
         with:
-          args: "Version ${{ needs.release-please.outputs.version }} of Hookbuffer has been released!"
+          title: Hookbuffer ${{ needs.release-please.outputs.version }} released
+          message: New version <b>${{ needs.release-please.outputs.version }}</b> has been released.
+          url: ${{ needs.release-please.outputs.release_url }}
+          url_title: View release notes
 

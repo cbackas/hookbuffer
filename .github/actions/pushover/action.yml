@@ -1,0 +1,56 @@
+name: Pushover notification
+description: >-
+  Send a Pushover push notification via the messages API. Reads credentials from
+  the PUSHOVER_TOKEN and PUSHOVER_USER environment variables (set them once at the
+  workflow or job level), so call sites only pass the message content.
+inputs:
+  title:
+    description: Notification title
+    required: true
+  message:
+    description: Notification message (HTML is enabled)
+    required: true
+  priority:
+    description: >-
+      Pushover priority (-2..2). 0 = normal, 1 = high (red highlight + bypasses
+      quiet hours), 2 = emergency (repeats until acknowledged).
+    required: false
+    default: "0"
+  url:
+    description: Optional supplementary URL to attach
+    required: false
+    default: ""
+  url_title:
+    description: Optional title for the supplementary URL
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        TITLE: ${{ inputs.title }}
+        MESSAGE: ${{ inputs.message }}
+        PRIORITY: ${{ inputs.priority }}
+        URL: ${{ inputs.url }}
+        URL_TITLE: ${{ inputs.url_title }}
+      run: |
+        : "${PUSHOVER_TOKEN:?set PUSHOVER_TOKEN in the workflow or job env}"
+        : "${PUSHOVER_USER:?set PUSHOVER_USER in the workflow or job env}"
+        args=(
+          --form-string "token=${PUSHOVER_TOKEN}"
+          --form-string "user=${PUSHOVER_USER}"
+          --form-string "title=${TITLE}"
+          --form-string "message=${MESSAGE}"
+          --form-string "html=1"
+          --form-string "priority=${PRIORITY}"
+        )
+        if [ -n "${URL}" ]; then
+          args+=(--form-string "url=${URL}")
+          [ -n "${URL_TITLE}" ] && args+=(--form-string "url_title=${URL_TITLE}")
+        fi
+        # Emergency priority (2) requires retry/expire so Pushover repeats until acked.
+        if [ "${PRIORITY}" = "2" ]; then
+          args+=(--form-string "retry=60" --form-string "expire=3600")
+        fi
+        curl --fail --silent --show-error "${args[@]}" https://api.pushover.net/1/messages.json
