@@ -1,0 +1,57 @@
+name: Deploy Worker
+on:
+  # Called by the release pipeline (push.yml) after a release is cut.
+  workflow_call:
+    inputs:
+      version:
+        description: Version label shown in notifications
+        type: string
+        required: false
+        default: ""
+      release_url:
+        description: URL linked from the success notification
+        type: string
+        required: false
+        default: ""
+  # Manual "deploy this ref" button. Pick the branch/tag from the
+  # "Use workflow from" selector; that ref is what gets checked out and deployed.
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: cloudflare-worker
+    env:
+      PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+      PUSHOVER_USER: ${{ secrets.PUSHOVER_USER }}
+      # On a release call this is the version tag; on a manual run it's the ref chosen in the UI.
+      LABEL: ${{ inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Notify deploy started
+        uses: ./.github/actions/pushover
+        with:
+          title: Deploying Hookbuffer ${{ env.LABEL }}
+          message: Worker deploy <b>started</b> for ${{ env.LABEL }}.
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Wrangler v4
+        run: npm install --save-dev wrangler@4
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Notify deploy succeeded
+        if: success()
+        uses: ./.github/actions/pushover
+        with:
+          title: Deployed Hookbuffer ${{ env.LABEL }}
+          message: Worker deploy <b>succeeded</b> for ${{ env.LABEL }}.
+          url: ${{ inputs.release_url }}
+          url_title: View release notes
+      - name: Notify deploy failed
+        if: failure()
+        uses: ./.github/actions/pushover
+        with:
+          title: Deploy FAILED — Hookbuffer ${{ env.LABEL }}
+          message: Worker deploy <b>failed</b> for ${{ env.LABEL }}. Check the run logs.
+          priority: "1"
+          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          url_title: View workflow run

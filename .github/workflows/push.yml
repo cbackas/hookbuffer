@@ -40,38 +40,11 @@ jobs:
   deploy-worker:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
-    runs-on: ubuntu-latest
-    environment: cloudflare-worker
-    steps:
-      - uses: actions/checkout@v7
-      - name: Notify deploy started
-        uses: ./.github/actions/pushover
-        with:
-          title: Deploying Hookbuffer ${{ needs.release-please.outputs.version }}
-          message: Worker deploy <b>started</b> for ${{ needs.release-please.outputs.version }}.
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install Wrangler v4
-        run: npm install --save-dev wrangler@4
-      - uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      - name: Notify deploy succeeded
-        if: success()
-        uses: ./.github/actions/pushover
-        with:
-          title: Deployed Hookbuffer ${{ needs.release-please.outputs.version }}
-          message: Worker deploy <b>succeeded</b> for ${{ needs.release-please.outputs.version }}.
-          url: ${{ needs.release-please.outputs.release_url }}
-          url_title: View release notes
-      - name: Notify deploy failed
-        if: failure()
-        uses: ./.github/actions/pushover
-        with:
-          title: Deploy FAILED — Hookbuffer ${{ needs.release-please.outputs.version }}
-          message: Worker deploy <b>failed</b> for ${{ needs.release-please.outputs.version }}. Check the run logs.
-          priority: "1"
-          url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          url_title: View workflow run
+    uses: ./.github/workflows/deploy-worker.yml
+    secrets: inherit
+    with:
+      version: ${{ needs.release-please.outputs.version }}
+      release_url: ${{ needs.release-please.outputs.release_url }}
   notify-release:
     runs-on: ubuntu-latest
     needs: release-please
